@@ -100,6 +100,55 @@ def get_system_status(db: Session) -> SystemStatusResponse:
         except Exception:
             pass
 
+    # Query SEBI-specific job history
+    sebi_status = "NOT_CONFIGURED"
+    sebi_verified = False
+    sebi_last_check = None
+    sebi_last_success = None
+    sebi_message = "SEBI Public Issues portal adapter ready. Trigger POST /api/v1/sebi/sync to begin document discovery."
+
+    if db_connected:
+        try:
+            from app.models.documents import Document
+            sebi_doc_count = db.scalar(select(func.count(Document.id))) or 0
+            sebi_extracted_count = db.scalar(select(func.count(Document.id)).where(Document.extraction_status == "EXTRACTED")) or 0
+
+            last_sebi_job = db.scalar(
+                select(IngestionJob)
+                .where(IngestionJob.source_system == "SEBI_PUBLIC_FILINGS")
+                .order_by(desc(IngestionJob.started_at))
+                .limit(1)
+            )
+            last_sebi_success = db.scalar(
+                select(IngestionJob)
+                .where(IngestionJob.source_system == "SEBI_PUBLIC_FILINGS", IngestionJob.status.in_(["SUCCESS", "PARTIAL"]))
+                .order_by(desc(IngestionJob.started_at))
+                .limit(1)
+            )
+
+            if last_sebi_success:
+                sebi_last_success = last_sebi_success.completed_at or last_sebi_success.started_at
+
+            if last_sebi_job:
+                sebi_last_check = last_sebi_job.completed_at or last_sebi_job.started_at
+                if last_sebi_job.status == "SUCCESS":
+                    sebi_status = "CONNECTED"
+                    sebi_verified = True
+                    sebi_message = f"{sebi_doc_count} documents stored; {sebi_extracted_count} financials extracted from DRHP/RHP filings."
+                elif last_sebi_job.status == "PARTIAL":
+                    sebi_status = "DEGRADED"
+                    sebi_verified = True
+                    sebi_message = f"Partial sync completed. {sebi_doc_count} documents. Notes: {last_sebi_job.error_details or 'None'}"
+                elif last_sebi_job.status == "FAILED":
+                    sebi_status = "FAILED"
+                    sebi_message = f"Last SEBI sync failed: {last_sebi_job.error_details or 'Network error'}"
+            elif sebi_doc_count > 0:
+                sebi_status = "CONNECTED"
+                sebi_verified = True
+                sebi_message = f"{sebi_doc_count} documents available; {sebi_extracted_count} financials extracted."
+        except Exception:
+            pass
+
     # Integrations status - honestly reported, NEVER claiming connected when not configured
     integrations = [
         IntegrationStatus(
@@ -122,12 +171,12 @@ def get_system_status(db: Session) -> SystemStatusResponse:
         ),
         IntegrationStatus(
             name="SEBI Public DRHP/RHP Filings Feed",
-            status="NOT_CONFIGURED",
-            verified=False,
-            last_check_timestamp=None,
-            last_successful_sync=None,
+            status=sebi_status,
+            verified=sebi_verified,
+            last_check_timestamp=sebi_last_check,
+            last_successful_sync=sebi_last_success,
             error_count_last_24h=0,
-            message="Statutory crawler pipeline not configured. Manual document upload or Phase 2 ingestion pending.",
+            message=sebi_message,
         ),
         IntegrationStatus(
             name="BSE Corporate Notices Feed",

@@ -1,0 +1,392 @@
+"""
+Document Service — Phase 2 Milestone 2
+Orchestrates SEBI discovery → download → hash check → IPO matching → extraction → persistence.
+Never fabricates numbers. Missing metrics stay None.
+"""
+import re
+import os
+import urllib.parse
+from datetime import datetime, timezone
+from typing import Dict, Any, List, Optional, Tuple
+
+from sqlalchemy import select, or_, desc
+from sqlalchemy.orm import Session
+
+from app.core.config import settings
+from app.models.ipo import IPO
+from app.models.documents import Document
+from app.models.financials import FinancialObservation
+from app.models.sources import SourceObservation
+from app.models.ingestion import IngestionJob
+from app.pipeline.sebi_adapter import (
+    SebiPublicIssuesAdapter,
+    SebiConnectionError,
+    DocumentSizeLimitExceededError,
+    clean_company_name,
+)
+from app.pipeline.pdf_extractor import PdfFinancialExtractor, PdfExtractionError
+
+
+def _name_similarity_score(a: str, b: str) -> float:
+    """
+    Token-level Jaccard similarity of normalised company names.
+    Returns value in [0.0, 1.0]. 1.0 = identical token sets.
+    """
+    tokens_a = set(clean_company_name(a).split())
+    tokens_b = set(clean_company_name(b).split())
+    if not tokens_a or not tokens_b:
+        return 0.0
+    intersection = tokens_a & tokens_b
+    union = tokens_a | tokens_b
+    return len(intersection) / len(union)
+
+
+def _match_ipo(db: Session, issuer_name: str) -> Tuple[Optional[IPO], float]:
+    """
+    Attempts to find an existing real IPO record (is_demo=False) that best matches
+    the SEBI filing issuer name using normalised token comparison.
+    Returns (matched_ipo, confidence_score).
+    If best_score < 0.5, returns (None, best_score) — document stored as UNMATCHED.
+    """
+    all_ipos = db.scalars(select(IPO).where(IPO.is_demo == False)).all()
+
+    best_match: Optional[IPO] = None
+    best_score = 0.0
+
+    for ipo in all_ipos:
+        score = _name_similarity_score(issuer_name, ipo.company_name)
+        if score > best_score:
+            best_score = score
+            best_match = ipo
+
+    if best_score >= 0.5:
+        return best_match, best_score
+    return None, best_score
+
+
+class DocumentService:
+    """
+    Orchestrates the full SEBI document ingestion pipeline:
+    1. Discover new filings from SEBI public issues portal
+    2. Download PDF with bounded streaming
+    3. Check SHA-256 hash for duplicates/revisions
+    4. Match to existing IPO records (or flag UNMATCHED)
+    5. Extract financial observations using PdfFinancialExtractor
+    6. Persist Document + FinancialObservation + SourceObservation records
+    7. Log IngestionJob
+    """
+
+    CONFIDENCE_THRESHOLD = 0.5  # Minimum Jaccard score to auto-associate document with IPO
+
+    def __init__(
+        self,
+        adapter: Optional[SebiPublicIssuesAdapter] = None,
+        extractor: Optional[PdfFinancialExtractor] = None,
+    ):
+        self.adapter = adapter or SebiPublicIssuesAdapter()
+        self.extractor = extractor or PdfFinancialExtractor()
+
+    def sync_sebi_documents(
+        self,
+        db: Session,
+        max_documents: Optional[int] = None,
+        since: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
+        """
+        Main sync entry point. Discovers new SEBI filings and processes each.
+        Commits atomically using savepoints.
+        """
+        limit = max_documents or settings.SEBI_MAX_DOCUMENTS_PER_SYNC
+
+        job = IngestionJob(
+            job_type="DOCUMENT_SYNC",
+            source_system="SEBI_PUBLIC_FILINGS",
+            status="RUNNING",
+            started_at=datetime.now(timezone.utc),
+            records_processed=0,
+        )
+        db.add(job)
+        db.commit()
+        db.refresh(job)
+
+        results: Dict[str, Any] = {
+            "job_id": job.id,
+            "source": "SEBI_PUBLIC_FILINGS",
+            "discovered": 0,
+            "already_stored": 0,
+            "hash_revision_detected": 0,
+            "processed": 0,
+            "financials_extracted": 0,
+            "unmatched": 0,
+            "errors": [],
+        }
+
+        try:
+            filings = self.adapter.poll_new_filings(since=since)
+            results["discovered"] = len(filings)
+
+            processed_count = 0
+            for filing_meta in filings:
+                if processed_count >= limit:
+                    break
+
+                try:
+                    outcome = self._process_single_filing(db, filing_meta.raw_metadata)
+                    results["already_stored"] += outcome.get("already_stored", 0)
+                    results["hash_revision_detected"] += outcome.get("revision_detected", 0)
+                    results["processed"] += outcome.get("processed", 0)
+                    results["financials_extracted"] += outcome.get("financials_extracted", 0)
+                    results["unmatched"] += outcome.get("unmatched", 0)
+                    processed_count += outcome.get("processed", 0)
+                except Exception as exc:
+                    results["errors"].append(str(exc))
+
+            # Finalise ingestion job
+            job.status = "SUCCESS" if not results["errors"] else "PARTIAL"
+            job.completed_at = datetime.now(timezone.utc)
+            job.records_processed = results["processed"]
+            db.commit()
+
+        except SebiConnectionError as exc:
+            job.status = "FAILED"
+            job.completed_at = datetime.now(timezone.utc)
+            job.error_details = str(exc)
+            db.commit()
+            results["errors"].append(f"SEBI connection failed: {exc}")
+
+        return results
+
+    def _process_single_filing(
+        self,
+        db: Session,
+        filing_meta: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Processes a single SEBI filing entry through the full pipeline.
+        Uses a savepoint so one document failure won't roll back the session.
+        """
+        outcome = {
+            "already_stored": 0,
+            "revision_detected": 0,
+            "processed": 0,
+            "financials_extracted": 0,
+            "unmatched": 0,
+        }
+
+        issuer_name = filing_meta.get("issuer_name", "")
+        detail_url = filing_meta.get("detail_url", "")
+        direct_pdf_url = filing_meta.get("direct_pdf_url")
+        doc_type = filing_meta.get("document_type", "OFFER_DOCUMENT")
+        filing_date = filing_meta.get("filing_date")
+
+        # Resolve downloadable PDF URL
+        pdf_url = self.adapter.resolve_pdf_url(detail_url, direct_pdf_url)
+        if not pdf_url:
+            outcome["errors"] = [f"No PDF URL found for {issuer_name}"]
+            return outcome
+
+        # Download with bounded streaming
+        doc_data = self.adapter.fetch_document(pdf_url)
+        file_hash = doc_data["file_hash_sha256"]
+
+        # Check if this exact hash is already stored
+        existing = db.scalars(
+            select(Document).where(Document.file_hash_sha256 == file_hash)
+        ).first()
+
+        if existing:
+            outcome["already_stored"] = 1
+            return outcome
+
+        # Check for previous version of same issuer/type
+        previous_version = db.scalars(
+            select(Document)
+            .where(Document.issuer_name == issuer_name, Document.document_type == doc_type, Document.is_current == True)
+            .order_by(desc(Document.version_number))
+        ).first()
+
+        version_number = 1
+        if previous_version:
+            # Mark old version as superseded
+            outcome["revision_detected"] = 1
+            version_number = previous_version.version_number + 1
+            with db.begin_nested():
+                previous_version.is_current = False
+                db.flush()
+
+        # Match to existing IPO
+        matched_ipo, confidence = _match_ipo(db, issuer_name)
+        extraction_status = "PENDING"
+        if not matched_ipo:
+            extraction_status = "UNMATCHED"
+            outcome["unmatched"] = 1
+
+        # Build file_name from URL
+        file_name = urllib.parse.unquote(pdf_url.split("/")[-1]) or f"{issuer_name}_{doc_type}.pdf"
+
+        # Create Document record
+        document = Document(
+            ipo_id=matched_ipo.id if matched_ipo else None,
+            issuer_name=issuer_name,
+            document_type=doc_type,
+            version_number=version_number,
+            file_name=file_name,
+            file_url=pdf_url,
+            source_url=detail_url,
+            file_hash_sha256=file_hash,
+            file_size_bytes=doc_data["file_size_bytes"],
+            filing_date=filing_date,
+            retrieval_timestamp=doc_data["retrieved_at"],
+            is_current=True,
+            extraction_status=extraction_status,
+            extracted_metadata={
+                "issuer_name": issuer_name,
+                "match_confidence": round(confidence, 3),
+                "matched_ipo_id": matched_ipo.id if matched_ipo else None,
+                "document_type": doc_type,
+            },
+        )
+
+        with db.begin_nested():
+            db.add(document)
+            db.flush()
+
+            # Record source observation provenance
+            source_obs = SourceObservation(
+                ipo_id=matched_ipo.id if matched_ipo else None,
+                source_name="SEBI_PUBLIC_FILINGS",
+                canonical_url=pdf_url,
+                content_hash_sha256=file_hash,
+                retrieval_timestamp=doc_data["retrieved_at"],
+                publication_timestamp=datetime.combine(
+                    filing_date, datetime.min.time(), tzinfo=timezone.utc
+                ) if filing_date else None,
+                validation_status="VALID",
+                raw_metadata={
+                    "issuer_name": issuer_name,
+                    "document_type": doc_type,
+                    "detail_url": detail_url,
+                    "file_size_bytes": doc_data["file_size_bytes"],
+                    "match_confidence": round(confidence, 3),
+                },
+            )
+            db.add(source_obs)
+            db.flush()
+
+        outcome["processed"] = 1
+
+        # Extract financials only if document is matched to an IPO and is a substantive document
+        if matched_ipo and doc_type in ("DRHP", "RHP", "DRAFT_ABRIDGED_PROSPECTUS", "PROSPECTUS"):
+            try:
+                fin_count = self._extract_and_store_financials(
+                    db=db,
+                    document=document,
+                    ipo=matched_ipo,
+                    pdf_bytes=doc_data["payload"],
+                )
+                outcome["financials_extracted"] = fin_count
+            except PdfExtractionError as exc:
+                with db.begin_nested():
+                    document.extraction_status = "FAILED"
+                    document.extraction_error = str(exc)[:1000]
+                    db.flush()
+
+        return outcome
+
+    def _extract_and_store_financials(
+        self,
+        db: Session,
+        document: Document,
+        ipo: IPO,
+        pdf_bytes: bytes,
+    ) -> int:
+        """
+        Runs PDF extraction and persists validated financial observations.
+        Returns number of periods successfully stored.
+        """
+        observations = self.extractor.extract_financials(pdf_bytes)
+        stored = 0
+
+        for obs_data in observations:
+            fiscal_year = obs_data.get("fiscal_year")
+            if not fiscal_year:
+                continue
+
+            # Check for existing observation for this IPO + fiscal_year from a real (non-demo) source
+            existing_obs = db.scalars(
+                select(FinancialObservation)
+                .where(
+                    FinancialObservation.ipo_id == ipo.id,
+                    FinancialObservation.fiscal_year == fiscal_year,
+                    FinancialObservation.verification_status.in_(["EXTRACTED", "VERIFIED"]),
+                )
+            ).first()
+
+            if existing_obs:
+                # Only overwrite if old record has no revenue and new one does
+                if existing_obs.revenue_crores is None and obs_data.get("revenue_crores") is not None:
+                    with db.begin_nested():
+                        existing_obs.revenue_crores = obs_data["revenue_crores"]
+                        existing_obs.source_document_id = document.id
+                        db.flush()
+                continue
+
+            # Create new FinancialObservation
+            fin_obs = FinancialObservation(
+                ipo_id=ipo.id,
+                fiscal_year=fiscal_year,
+                period_months=obs_data.get("period_months", 12),
+                revenue_crores=obs_data.get("revenue_crores"),
+                ebitda_crores=obs_data.get("ebitda_crores"),
+                pat_crores=obs_data.get("pat_crores"),
+                total_assets_crores=obs_data.get("total_assets_crores"),
+                net_worth_crores=obs_data.get("net_worth_crores"),
+                total_liabilities_crores=obs_data.get("total_liabilities_crores"),
+                total_debt_crores=obs_data.get("total_debt_crores"),
+                operating_cash_flow_crores=obs_data.get("operating_cash_flow_crores"),
+                roe_pct=obs_data.get("roe_pct"),
+                roce_pct=obs_data.get("roce_pct"),
+                eps_inr=obs_data.get("eps_inr"),
+                nav_per_share_inr=obs_data.get("nav_per_share_inr"),
+                source_document_id=document.id,
+                source_page=obs_data.get("source_page"),
+                statement_type=obs_data.get("statement_type", "CONSOLIDATED"),
+                is_restated=obs_data.get("is_restated", True),
+                currency=obs_data.get("currency", "INR"),
+                unit=obs_data.get("unit", "CRORES"),
+                extraction_method=obs_data.get("extraction_method", "PDFPLUMBER_TABLE"),
+                verification_status=obs_data.get("verification_status", "EXTRACTED"),
+                raw_data_provenance=obs_data.get("raw_data_provenance"),
+            )
+            with db.begin_nested():
+                db.add(fin_obs)
+                db.flush()
+            stored += 1
+
+        if stored > 0:
+            with db.begin_nested():
+                document.extraction_status = "EXTRACTED"
+                db.flush()
+        elif not observations:
+            with db.begin_nested():
+                document.extraction_status = "EXTRACTED"
+                document.extraction_error = "No financial tables detected in document"
+                db.flush()
+
+        return stored
+
+    def get_document_status(self, db: Session) -> Dict[str, Any]:
+        """Returns a summary of SEBI document ingestion health."""
+        from sqlalchemy import func
+        total = db.scalar(select(func.count(Document.id))) or 0
+        pending = db.scalar(select(func.count(Document.id)).where(Document.extraction_status == "PENDING")) or 0
+        extracted = db.scalar(select(func.count(Document.id)).where(Document.extraction_status == "EXTRACTED")) or 0
+        failed = db.scalar(select(func.count(Document.id)).where(Document.extraction_status == "FAILED")) or 0
+        unmatched = db.scalar(select(func.count(Document.id)).where(Document.extraction_status == "UNMATCHED")) or 0
+        return {
+            "total_documents": total,
+            "pending": pending,
+            "extracted": extracted,
+            "failed": failed,
+            "unmatched": unmatched,
+        }

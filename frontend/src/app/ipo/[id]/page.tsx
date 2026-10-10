@@ -386,16 +386,24 @@ function IpoDetailContent({ params }: PageProps) {
                       <th className="py-2.5 px-3 text-right">Revenue (₹ Cr)</th>
                       <th className="py-2.5 px-3 text-right">EBITDA (₹ Cr)</th>
                       <th className="py-2.5 px-3 text-right">PAT (₹ Cr)</th>
-                      <th className="py-2.5 px-3 text-right">ROE (%)</th>
-                      <th className="py-2.5 px-3 text-right">ROCE (%)</th>
-                      <th className="py-2.5 px-3 text-right">EPS (₹)</th>
+                      <th className="py-2.5 px-3 text-right">Net Worth (₹ Cr)</th>
                       <th className="py-2.5 px-3 text-right">Total Debt (₹ Cr)</th>
+                      <th className="py-2.5 px-3 text-right">ROE (%)</th>
+                      <th className="py-2.5 px-3 text-right">EPS (₹)</th>
+                      <th className="py-2.5 px-3 text-center">Provenance</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60">
                     {ipo.financials.map((fin) => (
                       <tr key={fin.id} className="hover:bg-slate-800/30">
-                        <td className="py-3 px-3 font-bold text-slate-200">{fin.fiscal_year}</td>
+                        <td className="py-3 px-3 font-bold text-slate-200">
+                          {fin.fiscal_year}
+                          {fin.is_restated && (
+                            <span className="ml-1.5 px-1.5 py-0.2 rounded text-[9px] bg-slate-800 text-slate-400 border border-slate-700">
+                              Restated
+                            </span>
+                          )}
+                        </td>
                         <td className="py-3 px-3 text-right text-slate-200">
                           {fin.revenue_crores?.toLocaleString() ?? '-'}
                         </td>
@@ -406,16 +414,25 @@ function IpoDetailContent({ params }: PageProps) {
                           {fin.pat_crores?.toLocaleString() ?? '-'}
                         </td>
                         <td className="py-3 px-3 text-right text-slate-300">
-                          {fin.roe_pct ? `${fin.roe_pct}%` : '-'}
+                          {fin.net_worth_crores?.toLocaleString() ?? '-'}
                         </td>
                         <td className="py-3 px-3 text-right text-slate-300">
-                          {fin.roce_pct ? `${fin.roce_pct}%` : '-'}
+                          {fin.total_debt_crores?.toLocaleString() ?? '-'}
+                        </td>
+                        <td className="py-3 px-3 text-right text-slate-300">
+                          {fin.roe_pct ? `${fin.roe_pct}%` : '-'}
                         </td>
                         <td className="py-3 px-3 text-right text-slate-300">
                           {fin.eps_inr ? `₹${fin.eps_inr}` : '-'}
                         </td>
-                        <td className="py-3 px-3 text-right text-slate-300">
-                          {fin.total_debt_crores?.toLocaleString() ?? '-'}
+                        <td className="py-3 px-3 text-center">
+                          {fin.source_page ? (
+                            <span className="px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 text-[10px] font-semibold" title={`Extracted from Prospectus Page ${fin.source_page}`}>
+                              Page {fin.source_page}
+                            </span>
+                          ) : (
+                            <span className="text-slate-500 text-[10px]">-</span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -483,7 +500,7 @@ function IpoDetailContent({ params }: PageProps) {
                   <FileText className="w-4 h-4 text-cyan-400" /> Statutory Filings & Document Provenance
                 </h3>
                 <p className="text-xs text-slate-400 mt-1">
-                  Immutable document storage with SHA-256 fingerprint verification.
+                  Immutable document storage with SHA-256 fingerprint verification and SEBI origin tracking.
                 </p>
               </div>
             </div>
@@ -501,29 +518,61 @@ function IpoDetailContent({ params }: PageProps) {
                     key={doc.id}
                     className="p-4 rounded-lg border border-slate-800 bg-slate-950/60 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono"
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="px-2 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-800 font-bold">
                           {doc.document_type} v{doc.version_number}
                         </span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          doc.extraction_status === 'EXTRACTED'
+                            ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/60'
+                            : doc.extraction_status === 'PENDING'
+                            ? 'bg-amber-950/80 text-amber-300 border border-amber-800/60'
+                            : doc.extraction_status === 'FAILED'
+                            ? 'bg-rose-950/80 text-rose-300 border border-rose-800/60'
+                            : 'bg-purple-950/80 text-purple-300 border border-purple-800/60'
+                        }`}>
+                          {doc.extraction_status || 'PENDING'}
+                        </span>
+                        {doc.filing_date && (
+                          <span className="text-slate-400 text-[11px]">
+                            Filing Date: {doc.filing_date}
+                          </span>
+                        )}
                         <span className="font-semibold text-slate-200">{doc.file_name}</span>
                       </div>
-                      <div className="text-[11px] text-slate-400 flex items-center gap-1.5 pt-1">
-                        <Hash className="w-3 h-3 text-slate-500" />
-                        <span>SHA-256:</span>
-                        <code className="text-slate-300">{doc.file_hash_sha256}</code>
+                      <div className="text-[11px] text-slate-400 flex flex-wrap items-center gap-3 pt-0.5">
+                        <div className="flex items-center gap-1">
+                          <Hash className="w-3 h-3 text-slate-500" />
+                          <span>SHA-256:</span>
+                          <code className="text-slate-300" title={doc.file_hash_sha256}>
+                            {doc.file_hash_sha256 ? `${doc.file_hash_sha256.substring(0, 16)}...` : '-'}
+                          </code>
+                        </div>
+                        {doc.file_size_bytes && (
+                          <span className="text-slate-500">
+                            • {(doc.file_size_bytes / (1024 * 1024)).toFixed(2)} MB
+                          </span>
+                        )}
                       </div>
+                      {doc.extraction_error && (
+                        <p className="text-[11px] text-rose-400">
+                          Error: {doc.extraction_error}
+                        </p>
+                      )}
                     </div>
 
-                    <a
-                      href={doc.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs shrink-0 self-start md:self-center transition-colors"
-                    >
-                      View Source Filing
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                    <div className="flex items-center gap-2 shrink-0 self-start md:self-center">
+                      <a
+                        href={doc.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs transition-colors"
+                      >
+                        View Filing
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -18,12 +18,17 @@ class Settings(BaseSettings):
     # Gate dev seeding
     ENABLE_DEV_SEED: bool = True
     
-    # Official Source Integrations (NSE)
+    # Official Source Integrations (NSE & SEBI)
     NSE_BASE_URL: str = "https://www.nseindia.com"
+    SEBI_BASE_URL: str = "https://www.sebi.gov.in"
+    SEBI_REQUEST_TIMEOUT_SECONDS: int = 30
+    SEBI_MAX_DOCUMENT_SIZE_MB: int = 35
+    SEBI_MAX_DOCUMENTS_PER_SYNC: int = 15
     INGESTION_SYNC_INTERVAL_MINUTES: int = 15
     ENABLE_SCHEDULED_INGESTION: bool = False
     INGESTION_API_KEY: Union[str, None] = None
     RUN_LIVE_TESTS: bool = False
+
     
     model_config = SettingsConfigDict(
         env_file=".env",

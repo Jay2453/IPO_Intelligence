@@ -22,6 +22,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 export default function SystemHealthPage() {
   const [status, setStatus] = useState<SystemStatusResponse | null>(null);
   const [jobs, setJobs] = useState<IngestionJob[]>([]);
+  const [sebiStatus, setSebiStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,12 +34,14 @@ export default function SystemHealthPage() {
     try {
       setLoading(true);
       setError(null);
-      const [statusRes, jobsRes] = await Promise.all([
+      const [statusRes, jobsRes, sebiRes] = await Promise.all([
         api.getSystemStatus(),
         api.getIngestionJobs({ page: 1, page_size: 10 }),
+        api.getSebiStatus().catch(() => null),
       ]);
       setStatus(statusRes);
       setJobs(jobsRes.items);
+      setSebiStatus(sebiRes);
     } catch (err: any) {
       setError(err.message || 'Unable to connect to telemetry service.');
     } finally {
@@ -47,6 +50,7 @@ export default function SystemHealthPage() {
   };
 
   const [syncing, setSyncing] = useState(false);
+  const [syncingSebi, setSyncingSebi] = useState(false);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
 
   const handleSyncNse = async () => {
@@ -57,9 +61,23 @@ export default function SystemHealthPage() {
       await fetchHealthData();
       setTimeout(() => setSyncNotice(null), 5000);
     } catch (err: any) {
-      alert(`Sync failed: ${err.message}`);
+      alert(`NSE sync failed: ${err.message}`);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleSyncSebi = async () => {
+    try {
+      setSyncingSebi(true);
+      const res = await api.syncSebi(10);
+      setSyncNotice(`SEBI sync completed: ${res.processed} processed, ${res.financials_extracted} financial statements extracted.`);
+      await fetchHealthData();
+      setTimeout(() => setSyncNotice(null), 6000);
+    } catch (err: any) {
+      alert(`SEBI sync failed: ${err.message}`);
+    } finally {
+      setSyncingSebi(false);
     }
   };
 
@@ -80,7 +98,16 @@ export default function SystemHealthPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={handleSyncSebi}
+            disabled={syncingSebi}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-indigo-500/40 bg-indigo-950/40 hover:bg-indigo-900/60 text-xs font-mono text-indigo-300 transition-colors disabled:opacity-50"
+            title="Trigger live sync against official SEBI public issues portal"
+          >
+            <FileText className={`w-3.5 h-3.5 ${syncingSebi ? 'animate-spin' : ''}`} />
+            {syncingSebi ? 'Syncing SEBI...' : 'Sync SEBI Filings'}
+          </button>
           <button
             onClick={handleSyncNse}
             disabled={syncing}
@@ -145,6 +172,67 @@ export default function SystemHealthPage() {
           subtext="Pipeline exceptions"
           icon={<AlertCircle className="w-4 h-4" />}
         />
+      </div>
+
+      {/* SEBI Prospectus & Document Extraction Pipeline */}
+      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+          <div>
+            <h2 className="text-sm font-mono uppercase tracking-wider text-slate-200 font-bold flex items-center gap-2">
+              <FileText className="w-4 h-4 text-indigo-400" />
+              SEBI Prospectus Ingestion & Financial Extraction Pipeline
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Automated DRHP/RHP discovery, SHA-256 fingerprinting, table extraction, and statutory financial validation.
+            </p>
+          </div>
+          {sebiStatus?.connection && (
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span className="text-xs font-mono text-emerald-400 font-semibold">
+                Portal: {sebiStatus.connection.status}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="p-3.5 rounded-lg border border-slate-800 bg-slate-950/60 text-xs font-mono space-y-1">
+            <span className="text-slate-400 text-[11px] block">Total Filings</span>
+            <span className="text-lg font-bold text-white block">
+              {sebiStatus?.document_stats?.total_documents ?? 0}
+            </span>
+            <span className="text-[10px] text-slate-500">Tracked Documents</span>
+          </div>
+          <div className="p-3.5 rounded-lg border border-emerald-900/40 bg-emerald-950/20 text-xs font-mono space-y-1">
+            <span className="text-emerald-400 text-[11px] block">Extracted</span>
+            <span className="text-lg font-bold text-emerald-300 block">
+              {sebiStatus?.document_stats?.extracted ?? 0}
+            </span>
+            <span className="text-[10px] text-emerald-500">Financials parsed</span>
+          </div>
+          <div className="p-3.5 rounded-lg border border-amber-900/40 bg-amber-950/20 text-xs font-mono space-y-1">
+            <span className="text-amber-400 text-[11px] block">Pending</span>
+            <span className="text-lg font-bold text-amber-300 block">
+              {sebiStatus?.document_stats?.pending ?? 0}
+            </span>
+            <span className="text-[10px] text-amber-500">Queued for extraction</span>
+          </div>
+          <div className="p-3.5 rounded-lg border border-purple-900/40 bg-purple-950/20 text-xs font-mono space-y-1">
+            <span className="text-purple-400 text-[11px] block">Unmatched</span>
+            <span className="text-lg font-bold text-purple-300 block">
+              {sebiStatus?.document_stats?.unmatched ?? 0}
+            </span>
+            <span className="text-[10px] text-purple-500">Stored for review</span>
+          </div>
+          <div className="p-3.5 rounded-lg border border-rose-900/40 bg-rose-950/20 text-xs font-mono space-y-1">
+            <span className="text-rose-400 text-[11px] block">Failed</span>
+            <span className="text-lg font-bold text-rose-300 block">
+              {sebiStatus?.document_stats?.failed ?? 0}
+            </span>
+            <span className="text-[10px] text-rose-500">Extraction errors</span>
+          </div>
+        </div>
       </div>
 
       {/* Regulatory Source Integrations Section */}
