@@ -46,6 +46,23 @@ export default function SystemHealthPage() {
     }
   };
 
+  const [syncing, setSyncing] = useState(false);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
+
+  const handleSyncNse = async () => {
+    try {
+      setSyncing(true);
+      const res = await api.syncNse(true, 30);
+      setSyncNotice(`NSE sync completed: ${res.records_inserted} inserted, ${res.records_updated} updated.`);
+      await fetchHealthData();
+      setTimeout(() => setSyncNotice(null), 5000);
+    } catch (err: any) {
+      alert(`Sync failed: ${err.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -59,19 +76,36 @@ export default function SystemHealthPage() {
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Platform Health & Integrations</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Live diagnostic connectivity across PostgreSQL, ingestion workers, and regulatory feeds.
+            Live diagnostic connectivity across database, ingestion workers, and regulatory feeds.
           </p>
         </div>
 
-        <button
-          onClick={fetchHealthData}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-slate-700 bg-slate-850 hover:bg-slate-800 text-xs font-mono text-slate-300 transition-colors self-start sm:self-auto disabled:opacity-50"
-        >
-          <RotateCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Refresh Diagnostics
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={handleSyncNse}
+            disabled={syncing}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-cyan-500/40 bg-cyan-950/40 hover:bg-cyan-900/60 text-xs font-mono text-cyan-300 transition-colors disabled:opacity-50"
+            title="Trigger live sync against official NSE public portal"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing NSE...' : 'Sync NSE Feed Now'}
+          </button>
+          <button
+            onClick={fetchHealthData}
+            disabled={loading}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-slate-700 bg-slate-850 hover:bg-slate-800 text-xs font-mono text-slate-300 transition-colors disabled:opacity-50"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
+
+      {syncNotice && (
+        <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-950/20 text-emerald-400 text-xs font-mono">
+          ✓ {syncNotice}
+        </div>
+      )}
 
       {error && (
         <div className="p-4 rounded-xl border border-rose-800/60 bg-rose-950/40 text-rose-300 text-xs flex items-center gap-3">

@@ -57,6 +57,49 @@ def get_system_status(db: Session) -> SystemStatusResponse:
         except Exception as e:
             recent_errors.append(f"Failed to query system stats: {str(e)}")
 
+    # Query NSE-specific job history
+    nse_status = "NOT_CONFIGURED"
+    nse_verified = False
+    nse_last_check = None
+    nse_last_success = None
+    nse_errors_24h = 0
+    nse_message = "National Stock Exchange public portal adapter ready; manual or scheduled synchronization pending."
+
+    if db_connected:
+        try:
+            last_nse_job = db.scalar(
+                select(IngestionJob)
+                .where(IngestionJob.source_system == "NSE_FEED")
+                .order_by(desc(IngestionJob.started_at))
+                .limit(1)
+            )
+            last_nse_success = db.scalar(
+                select(IngestionJob)
+                .where(IngestionJob.source_system == "NSE_FEED", IngestionJob.status.in_(["SUCCESS", "PARTIAL"]))
+                .order_by(desc(IngestionJob.started_at))
+                .limit(1)
+            )
+
+            if last_nse_success:
+                nse_last_success = last_nse_success.completed_at or last_nse_success.started_at
+
+            if last_nse_job:
+                nse_last_check = last_nse_job.completed_at or last_nse_job.started_at
+                if last_nse_job.status == "SUCCESS":
+                    nse_status = "CONNECTED"
+                    nse_verified = True
+                    nse_message = f"Verified official NSE connection. {real_ipos} live public IPO records synchronized."
+                elif last_nse_job.status == "PARTIAL":
+                    nse_status = "DEGRADED"
+                    nse_verified = True
+                    nse_message = f"Partial synchronization completed ({real_ipos} live records). Notices: {last_nse_job.error_details or 'None'}"
+                elif last_nse_job.status == "FAILED":
+                    nse_status = "FAILED"
+                    nse_verified = False
+                    nse_message = f"Last synchronization failed: {last_nse_job.error_details or 'Network error'}"
+        except Exception:
+            pass
+
     # Integrations status - honestly reported, NEVER claiming connected when not configured
     integrations = [
         IntegrationStatus(
@@ -69,6 +112,15 @@ def get_system_status(db: Session) -> SystemStatusResponse:
             message="Database ping SELECT 1 succeeded" if db_connected else "Cannot connect to database",
         ),
         IntegrationStatus(
+            name="NSE Official IPO Information Portal",
+            status=nse_status,
+            verified=nse_verified,
+            last_check_timestamp=nse_last_check,
+            last_successful_sync=nse_last_success,
+            error_count_last_24h=nse_errors_24h,
+            message=nse_message,
+        ),
+        IntegrationStatus(
             name="SEBI Public DRHP/RHP Filings Feed",
             status="NOT_CONFIGURED",
             verified=False,
@@ -76,15 +128,6 @@ def get_system_status(db: Session) -> SystemStatusResponse:
             last_successful_sync=None,
             error_count_last_24h=0,
             message="Statutory crawler pipeline not configured. Manual document upload or Phase 2 ingestion pending.",
-        ),
-        IntegrationStatus(
-            name="NSE Circulars & Live Bidding API",
-            status="NOT_CONFIGURED",
-            verified=False,
-            last_check_timestamp=None,
-            last_successful_sync=None,
-            error_count_last_24h=0,
-            message="National Stock Exchange API credentials / authorized data vendor feed unconfigured.",
         ),
         IntegrationStatus(
             name="BSE Corporate Notices Feed",

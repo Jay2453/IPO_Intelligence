@@ -7,12 +7,52 @@ from app.core.database import engine
 from app.models import Base
 
 
+import asyncio
+import logging
+
+logger = logging.getLogger("ipo_intelligence")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Ensure tables exist on startup if running in development mode
     if settings.ENVIRONMENT != "production":
         Base.metadata.create_all(bind=engine)
+
+    # Optional background scheduled ingestion worker (default 15 minutes)
+    worker_task = None
+    if settings.ENABLE_SCHEDULED_INGESTION:
+        from app.core.database import SessionLocal
+        from app.services.ingestion_service import IngestionService
+
+        async def scheduled_sync_worker():
+            interval_seconds = max(60, settings.INGESTION_SYNC_INTERVAL_MINUTES * 60)
+            logger.info(f"Starting scheduled ingestion worker (interval: {interval_seconds}s)")
+            while True:
+                try:
+                    await asyncio.sleep(interval_seconds)
+                    db = SessionLocal()
+                    try:
+                        service = IngestionService()
+                        result = service.sync_nse_ipos(db=db, include_recent_past=True, past_limit=30)
+                        logger.info(f"Scheduled sync completed: {result['total_processed']} records processed")
+                    finally:
+                        db.close()
+                except asyncio.CancelledError:
+                    break
+                except Exception as e:
+                    logger.error(f"Scheduled ingestion error: {e}")
+
+        worker_task = asyncio.create_task(scheduled_sync_worker())
+
     yield
+
+    if worker_task:
+        worker_task.cancel()
+        try:
+            await worker_task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(

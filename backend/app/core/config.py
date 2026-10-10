@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     # Gate dev seeding
     ENABLE_DEV_SEED: bool = True
     
+    # Official Source Integrations (NSE)
+    NSE_BASE_URL: str = "https://www.nseindia.com"
+    INGESTION_SYNC_INTERVAL_MINUTES: int = 15
+    ENABLE_SCHEDULED_INGESTION: bool = False
+    INGESTION_API_KEY: Union[str, None] = None
+    RUN_LIVE_TESTS: bool = False
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

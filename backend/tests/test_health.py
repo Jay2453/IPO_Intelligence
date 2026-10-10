@@ -19,4 +19,5 @@ def test_system_status_endpoint(client):
     assert "SEBI Public DRHP/RHP Filings Feed" in integrations_map
     assert integrations_map["SEBI Public DRHP/RHP Filings Feed"]["status"] == "NOT_CONFIGURED"
     assert integrations_map["SEBI Public DRHP/RHP Filings Feed"]["verified"] is False
-    assert integrations_map["NSE Circulars & Live Bidding API"]["status"] == "NOT_CONFIGURED"
+    assert "NSE Official IPO Information Portal" in integrations_map
+    assert integrations_map["NSE Official IPO Information Portal"]["status"] in ("NOT_CONFIGURED", "CONNECTED", "DEGRADED")

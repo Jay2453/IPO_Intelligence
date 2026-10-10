@@ -37,27 +37,32 @@ def seed_demo_dataset(db: Session, force: bool = False) -> dict:
     now = datetime.now(timezone.utc)
     today = now.date()
 
-    # 1. Seed Model Versions
-    baseline_model = ModelVersion(
-        model_name="BASELINE_LOGISTIC_REGRESSOR",
-        version_tag="v0.1.0-alpha",
-        algorithm="LogisticRegression(C=1.0, L2)",
-        training_cutoff_date=today - timedelta(days=90),
-        validation_metrics={"brier_score": 0.182, "roc_auc": 0.735, "ece": 0.041},
-        feature_manifest=["revenue_cagr_3y", "pat_margin", "roe_pct", "qib_oversubscription", "market_regime"],
-        is_active=True,
-    )
-    catboost_model = ModelVersion(
-        model_name="CATBOOST_LISTING_V1",
-        version_tag="v1.0.0-beta",
-        algorithm="CatBoostClassifier(depth=5, l2_leaf_reg=3)",
-        training_cutoff_date=today - timedelta(days=60),
-        validation_metrics={"brier_score": 0.144, "roc_auc": 0.812, "ece": 0.027},
-        feature_manifest=["qib_sub", "nii_sub", "pe_ratio_issue", "roe_pct", "fresh_issue_ratio", "market_volatility"],
-        is_active=True,
-    )
-    db.add(baseline_model)
-    db.add(catboost_model)
+    # 1. Seed or get Model Versions
+    baseline_model = db.scalar(select(ModelVersion).where(ModelVersion.version_tag == "v0.1.0-alpha"))
+    if not baseline_model:
+        baseline_model = ModelVersion(
+            model_name="BASELINE_LOGISTIC_REGRESSOR",
+            version_tag="v0.1.0-alpha",
+            algorithm="LogisticRegression(C=1.0, L2)",
+            training_cutoff_date=today - timedelta(days=90),
+            validation_metrics={"brier_score": 0.182, "roc_auc": 0.735, "ece": 0.041},
+            feature_manifest=["revenue_cagr_3y", "pat_margin", "roe_pct", "qib_oversubscription", "market_regime"],
+            is_active=True,
+        )
+        db.add(baseline_model)
+
+    catboost_model = db.scalar(select(ModelVersion).where(ModelVersion.version_tag == "v1.0.0-beta"))
+    if not catboost_model:
+        catboost_model = ModelVersion(
+            model_name="CATBOOST_LISTING_V1",
+            version_tag="v1.0.0-beta",
+            algorithm="CatBoostClassifier(depth=5, l2_leaf_reg=3)",
+            training_cutoff_date=today - timedelta(days=60),
+            validation_metrics={"brier_score": 0.144, "roc_auc": 0.812, "ece": 0.027},
+            feature_manifest=["qib_sub", "nii_sub", "pe_ratio_issue", "roe_pct", "fresh_issue_ratio", "market_volatility"],
+            is_active=True,
+        )
+        db.add(catboost_model)
     db.flush()
 
     # 2. Record 1: Premier Clean Energy Technologies Ltd (Mainboard, SUBSCRIPTION_OPEN)
