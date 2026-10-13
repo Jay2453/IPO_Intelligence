@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # IPO Intelligence — Phase 1 Foundation & Architecture
 
 > **Institutional-grade Indian Capital Markets Financial Intelligence & Predictive Platform**  
@@ -196,3 +197,7 @@ npm run build
 - [ARCHITECTURE.md](file:///e:/Studies/Wed%20Development%20Course/WEB%20DEV%20Projects/IPO/ARCHITECTURE.md) — System boundaries, module layouts, and data pipelines.
 - [DATA_DICTIONARY.md](file:///e:/Studies/Wed%20Development%20Course/WEB%20DEV%20Projects/IPO/DATA_DICTIONARY.md) — Schema definitions for all 10 core entities.
 - [DECISIONS.md](file:///e:/Studies/Wed%20Development%20Course/WEB%20DEV%20Projects/IPO/DECISIONS.md) — Architecture Decision Records (ADRs).
+=======
+# IPO_Intelligence
+AI-powered Indian IPO analysis platform for automated IPO discovery, prospectus analysis, financial data extraction, listing performance verification, risk assessment, and historical return prediction using machine learning and leakage-resistant backtesting.
+>>>>>>> bcee06e124d398bc86aa966fae348b0564ea1744
