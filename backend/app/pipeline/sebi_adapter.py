@@ -1,3 +1,4 @@
+import os
 import re
 import hashlib
 from datetime import datetime, date, timezone
@@ -89,9 +90,44 @@ class SebiPublicIssuesAdapter(IDiscoveryProvider, IDocumentFetcher):
         "Referer": "https://www.sebi.gov.in/filings/public-issues.html",
     }
 
-    def __init__(self, timeout: float = None, max_size_mb: int = None):
+    def __init__(self, timeout: float = None, max_size_mb: int = None, cache_dir: Optional[str] = None):
         self.timeout = timeout or float(settings.SEBI_REQUEST_TIMEOUT_SECONDS)
         self.max_size_bytes = (max_size_mb or settings.SEBI_MAX_DOCUMENT_SIZE_MB) * 1024 * 1024
+        if cache_dir:
+            self.cache_dir = cache_dir
+        else:
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            self.cache_dir = os.path.join(base_dir, "data", "pdf_cache")
+        try:
+            os.makedirs(self.cache_dir, exist_ok=True)
+        except Exception:
+            pass
+
+    def get_cached_document(self, file_hash: str) -> Optional[bytes]:
+        """Returns raw bytes from local disk cache if SHA-256 matches, else None."""
+        if not file_hash or len(file_hash) != 64:
+            return None
+        cache_path = os.path.join(self.cache_dir, f"{file_hash}.pdf")
+        if os.path.exists(cache_path):
+            try:
+                with open(cache_path, "rb") as f:
+                    payload = f.read()
+                if hashlib.sha256(payload).hexdigest() == file_hash:
+                    return payload
+            except Exception:
+                return None
+        return None
+
+    def save_to_cache(self, file_hash: str, payload: bytes) -> None:
+        """Saves validated document bytes to local disk cache."""
+        if not file_hash or not payload:
+            return
+        try:
+            cache_path = os.path.join(self.cache_dir, f"{file_hash}.pdf")
+            with open(cache_path, "wb") as f:
+                f.write(payload)
+        except Exception:
+            pass
 
     def verify_connection(self) -> Dict[str, Any]:
         """Performs a live HEAD or GET probe of official SEBI public issues portal."""
@@ -241,48 +277,97 @@ class SebiPublicIssuesAdapter(IDiscoveryProvider, IDocumentFetcher):
             return None
         return None
 
-    def fetch_document(self, url: str) -> Dict[str, Any]:
+    def probe_document_metadata(self, url: str) -> Optional[Dict[str, Any]]:
+        """
+        Lightweight HEAD probe to check Content-Length and Last-Modified
+        without downloading the binary payload. Returns None if probe fails.
+        """
+        try:
+            with httpx.Client(headers=self.DEFAULT_HEADERS, timeout=min(self.timeout, 10.0), follow_redirects=True) as client:
+                resp = client.head(url)
+                if resp.status_code == 200:
+                    cl = resp.headers.get("content-length")
+                    lm = resp.headers.get("last-modified")
+                    return {
+                        "content_length": int(cl) if cl and cl.isdigit() else None,
+                        "last_modified": lm,
+                        "status_code": resp.status_code,
+                    }
+        except Exception:
+            return None
+        return None
+
+    def fetch_document(self, url: str, max_retries: int = 1, expected_hash: Optional[str] = None) -> Dict[str, Any]:
         """
         Streams document bytes with bounded size and timeouts.
         Computes SHA-256 fingerprint.
+        Includes bounded retry for transient network and streaming drops.
+        Checks local disk cache if expected_hash is provided.
         """
-        try:
-            with httpx.Client(headers=self.DEFAULT_HEADERS, timeout=self.timeout, follow_redirects=True) as client:
-                with client.stream("GET", url) as resp:
-                    if resp.status_code != 200:
-                        raise SebiConnectionError(f"HTTP {resp.status_code} downloading document from {url}")
+        if expected_hash:
+            cached_bytes = self.get_cached_document(expected_hash)
+            if cached_bytes:
+                return {
+                    "payload": cached_bytes,
+                    "file_size_bytes": len(cached_bytes),
+                    "file_hash_sha256": expected_hash,
+                    "content_type": "application/pdf",
+                    "retrieved_at": datetime.now(timezone.utc),
+                    "source_url": url,
+                    "from_cache": True,
+                }
 
-                    content_length = resp.headers.get("content-length")
-                    if content_length and int(content_length) > self.max_size_bytes:
-                        raise DocumentSizeLimitExceededError(
-                            f"Document size {int(content_length)/(1024*1024):.1f}MB exceeds safety limit "
-                            f"{self.max_size_bytes/(1024*1024):.1f}MB"
-                        )
+        last_exc: Optional[Exception] = None
+        for attempt in range(max_retries + 1):
+            try:
+                with httpx.Client(headers=self.DEFAULT_HEADERS, timeout=self.timeout, follow_redirects=True) as client:
+                    with client.stream("GET", url) as resp:
+                        if resp.status_code != 200:
+                            raise SebiConnectionError(f"HTTP {resp.status_code} downloading document from {url}")
 
-                    chunks = []
-                    total_bytes = 0
-                    hasher = hashlib.sha256()
-
-                    for chunk in resp.iter_bytes(chunk_size=65536):
-                        total_bytes += len(chunk)
-                        if total_bytes > self.max_size_bytes:
+                        content_length = resp.headers.get("content-length")
+                        if content_length and int(content_length) > self.max_size_bytes:
                             raise DocumentSizeLimitExceededError(
-                                f"Document download streamed {total_bytes/(1024*1024):.1f}MB, exceeding limit"
+                                f"Document size {int(content_length)/(1024*1024):.1f}MB exceeds safety limit "
+                                f"{self.max_size_bytes/(1024*1024):.1f}MB"
                             )
-                        chunks.append(chunk)
-                        hasher.update(chunk)
 
-                    payload = b"".join(chunks)
-                    return {
-                        "payload": payload,
-                        "file_size_bytes": total_bytes,
-                        "file_hash_sha256": hasher.hexdigest(),
-                        "content_type": resp.headers.get("content-type", "application/pdf"),
-                        "retrieved_at": datetime.now(timezone.utc),
-                        "source_url": url,
-                    }
-        except httpx.RequestError as exc:
-            raise SebiConnectionError(f"Download failed for {url}: {exc}") from exc
+                        chunks = []
+                        total_bytes = 0
+                        hasher = hashlib.sha256()
+
+                        for chunk in resp.iter_bytes(chunk_size=65536):
+                            total_bytes += len(chunk)
+                            if total_bytes > self.max_size_bytes:
+                                raise DocumentSizeLimitExceededError(
+                                    f"Document download streamed {total_bytes/(1024*1024):.1f}MB, exceeding limit"
+                                )
+                            chunks.append(chunk)
+                            hasher.update(chunk)
+
+                        payload = b"".join(chunks)
+                        file_hash = hasher.hexdigest()
+                        self.save_to_cache(file_hash, payload)
+                        return {
+                            "payload": payload,
+                            "file_size_bytes": total_bytes,
+                            "file_hash_sha256": file_hash,
+                            "content_type": resp.headers.get("content-type", "application/pdf"),
+                            "retrieved_at": datetime.now(timezone.utc),
+                            "source_url": url,
+                            "from_cache": False,
+                        }
+            except DocumentSizeLimitExceededError:
+                raise
+            except (httpx.RequestError, httpx.HTTPError) as exc:
+                last_exc = exc
+                if attempt < max_retries:
+                    import time
+                    time.sleep(1.0)
+                    continue
+                raise SebiConnectionError(f"Download failed for {url} after {max_retries} retry: {exc}") from exc
+        if last_exc:
+            raise SebiConnectionError(f"Download failed for {url}: {last_exc}") from last_exc
 
     def _parse_issuer_and_type(self, raw_title: str, default_type: str) -> Tuple[str, str]:
         """Extracts cleaned issuer name and document type from row title."""

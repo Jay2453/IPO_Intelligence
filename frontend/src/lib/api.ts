@@ -134,4 +134,8 @@ export const api = {
   extractDocument: async (id: string): Promise<any> => {
     return fetchFromApi(`/documents/${id}/extract`, { method: 'POST' });
   },
+
+  extractPendingDocuments: async (limit: number = 5): Promise<any> => {
+    return fetchFromApi(`/sebi/extract-pending?limit=${limit}`, { method: 'POST' });
+  },
 };

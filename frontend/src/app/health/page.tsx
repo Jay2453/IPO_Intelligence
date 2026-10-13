@@ -81,6 +81,22 @@ export default function SystemHealthPage() {
     }
   };
 
+  const [extractingPending, setExtractingPending] = useState(false);
+
+  const handleExtractPending = async () => {
+    try {
+      setExtractingPending(true);
+      const res = await api.extractPendingDocuments(5);
+      setSyncNotice(`Batch extraction completed: ${res.extracted} extracted, ${res.failed} failed of ${res.queued} queued.`);
+      await fetchHealthData();
+      setTimeout(() => setSyncNotice(null), 6000);
+    } catch (err: any) {
+      alert(`Pending extraction failed: ${err.message}`);
+    } finally {
+      setExtractingPending(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -107,6 +123,15 @@ export default function SystemHealthPage() {
           >
             <FileText className={`w-3.5 h-3.5 ${syncingSebi ? 'animate-spin' : ''}`} />
             {syncingSebi ? 'Syncing SEBI...' : 'Sync SEBI Filings'}
+          </button>
+          <button
+            onClick={handleExtractPending}
+            disabled={extractingPending}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-purple-500/40 bg-purple-950/40 hover:bg-purple-900/60 text-xs font-mono text-purple-300 transition-colors disabled:opacity-50"
+            title="Process bounded batch of pending stored prospectuses"
+          >
+            <FileText className={`w-3.5 h-3.5 ${extractingPending ? 'animate-spin' : ''}`} />
+            {extractingPending ? 'Extracting...' : 'Extract Pending Filings'}
           </button>
           <button
             onClick={handleSyncNse}
@@ -196,7 +221,7 @@ export default function SystemHealthPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <div className="p-3.5 rounded-lg border border-slate-800 bg-slate-950/60 text-xs font-mono space-y-1">
             <span className="text-slate-400 text-[11px] block">Total Filings</span>
             <span className="text-lg font-bold text-white block">
@@ -209,7 +234,14 @@ export default function SystemHealthPage() {
             <span className="text-lg font-bold text-emerald-300 block">
               {sebiStatus?.document_stats?.extracted ?? 0}
             </span>
-            <span className="text-[10px] text-emerald-500">Financials parsed</span>
+            <span className="text-[10px] text-emerald-500">All periods parsed</span>
+          </div>
+          <div className="p-3.5 rounded-lg border border-cyan-900/40 bg-cyan-950/20 text-xs font-mono space-y-1">
+            <span className="text-cyan-400 text-[11px] block">Partial</span>
+            <span className="text-lg font-bold text-cyan-300 block">
+              {sebiStatus?.document_stats?.partial ?? 0}
+            </span>
+            <span className="text-[10px] text-cyan-500">Partial periods</span>
           </div>
           <div className="p-3.5 rounded-lg border border-amber-900/40 bg-amber-950/20 text-xs font-mono space-y-1">
             <span className="text-amber-400 text-[11px] block">Pending</span>

@@ -43,6 +43,22 @@ def get_system_status(db: Session) -> SystemStatusResponse:
             real_ipos = db.scalar(select(func.count(IPO.id)).where(IPO.is_demo == False)) or 0
             demo_ipos = db.scalar(select(func.count(IPO.id)).where(IPO.is_demo == True)) or 0
             
+            # Clean up stranded RUNNING jobs older than 15 minutes
+            now_utc = datetime.now(timezone.utc)
+            stranded_jobs = db.scalars(
+                select(IngestionJob).where(IngestionJob.status == "RUNNING")
+            ).all()
+            for s_job in stranded_jobs:
+                s_started = s_job.started_at
+                if s_started.tzinfo is None:
+                    s_started = s_started.replace(tzinfo=timezone.utc)
+                if (now_utc - s_started).total_seconds() > 900:
+                    s_job.status = "FAILED"
+                    s_job.error_details = "Process interrupted or timed out while running."
+                    s_job.completed_at = now_utc
+            if stranded_jobs:
+                db.commit()
+
             # Query last ingestion job
             last_job = db.scalar(
                 select(IngestionJob)
@@ -54,6 +70,8 @@ def get_system_status(db: Session) -> SystemStatusResponse:
                 last_sync_status = last_job.status
                 if last_job.status == "FAILED" and last_job.error_details:
                     recent_errors.append(f"[{last_job.source_system}] {last_job.error_details}")
+                elif last_job.status == "PARTIAL" and last_job.error_details:
+                    recent_errors.append(f"[{last_job.source_system} Notice] {last_job.error_details}")
         except Exception as e:
             recent_errors.append(f"Failed to query system stats: {str(e)}")
 
@@ -111,7 +129,9 @@ def get_system_status(db: Session) -> SystemStatusResponse:
         try:
             from app.models.documents import Document
             sebi_doc_count = db.scalar(select(func.count(Document.id))) or 0
-            sebi_extracted_count = db.scalar(select(func.count(Document.id)).where(Document.extraction_status == "EXTRACTED")) or 0
+            sebi_extracted_count = db.scalar(
+                select(func.count(Document.id)).where(Document.extraction_status.in_(["EXTRACTED", "PARTIAL"]))
+            ) or 0
 
             last_sebi_job = db.scalar(
                 select(IngestionJob)
@@ -134,11 +154,12 @@ def get_system_status(db: Session) -> SystemStatusResponse:
                 if last_sebi_job.status == "SUCCESS":
                     sebi_status = "CONNECTED"
                     sebi_verified = True
-                    sebi_message = f"{sebi_doc_count} documents stored; {sebi_extracted_count} financials extracted from DRHP/RHP filings."
+                    sebi_message = f"{sebi_doc_count} documents stored; {sebi_extracted_count} financials extracted from DRHP/RHP/Abridged filings."
                 elif last_sebi_job.status == "PARTIAL":
                     sebi_status = "DEGRADED"
                     sebi_verified = True
-                    sebi_message = f"Partial sync completed. {sebi_doc_count} documents. Notes: {last_sebi_job.error_details or 'None'}"
+                    notices = f" Notices: {last_sebi_job.error_details}" if last_sebi_job.error_details else ""
+                    sebi_message = f"Partial sync completed ({sebi_doc_count} documents, {sebi_extracted_count} extracted).{notices}"
                 elif last_sebi_job.status == "FAILED":
                     sebi_status = "FAILED"
                     sebi_message = f"Last SEBI sync failed: {last_sebi_job.error_details or 'Network error'}"

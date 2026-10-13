@@ -15,6 +15,10 @@ class MarketObservationResponse(BaseModel):
     listing_close_price_inr: Optional[float] = None
     listing_gain_pct: Optional[float] = None
     bhavcopy_verified: bool
+    exchange: Optional[str] = None
+    source_url: Optional[str] = None
+    source_file_hash: Optional[str] = None
+    raw_data_provenance: Optional[dict] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

@@ -24,9 +24,10 @@ from datetime import datetime, timezone, date
 from typing import List, Dict, Any, Optional
 from unittest.mock import patch, MagicMock
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, func
 from sqlalchemy.orm import sessionmaker, Session
 
 from app.core.database import Base, get_db
@@ -48,6 +49,7 @@ from app.pipeline.sebi_adapter import (
     parse_sebi_date,
     detect_document_type,
     SebiPublicIssuesAdapter,
+    SebiConnectionError,
 )
 from app.services.document_service import _name_similarity_score, DocumentService
 
@@ -602,6 +604,124 @@ class TestSebiApiEndpoints:
         assert resp.status_code == 404
 
 
+# ─── Repeated Extraction & Provenance Tests ────────────────────────────────────
+
+class TestRepeatedExtractionAndProvenance:
+    def test_repeated_extraction_idempotence(self, db_session: Session, real_ipo: IPO):
+        """
+        Running extraction on the same document twice must:
+        - Leave exactly 3 observations (FY24, FY25, FY26) with zero duplicates
+        - Return count 3 on both runs
+        - Set extraction_status to PARTIAL (since FY23 is empty) without corrupting to FAILED
+        """
+        doc = Document(
+            ipo_id=real_ipo.id,
+            issuer_name=real_ipo.company_name,
+            document_type="RHP",
+            version_number=1,
+            file_name="test.pdf",
+            file_url="https://example.com/test.pdf",
+            file_hash_sha256="abc123hash",
+            file_size_bytes=1024,
+            is_current=True,
+            extraction_status="PENDING",
+        )
+        db_session.add(doc)
+        db_session.commit()
+
+        mock_obs = [
+            {
+                "fiscal_year": "FY23",
+                "revenue_crores": None,
+                "pat_crores": None,
+                "source_page": 8,
+                "extraction_method": "PDFPLUMBER_TABLE",
+                "verification_status": "FAILED",
+                "raw_data_provenance": {"line_items_extracted": {}},
+            },
+            {
+                "fiscal_year": "FY24",
+                "revenue_crores": 53.655,
+                "pat_crores": 4.024,
+                "total_assets_crores": None,
+                "total_liabilities_crores": None,
+                "source_page": 6,
+                "extraction_method": "TEXT_LINE",
+                "verification_status": "EXTRACTED",
+                "raw_data_provenance": {
+                    "source_page": 6,
+                    "source_pages": [6, 7],
+                    "line_items_extracted": {
+                        "revenue_crores": {"source_page": 6, "extraction_method": "TEXT_LINE"}
+                    },
+                },
+            },
+            {
+                "fiscal_year": "FY25",
+                "revenue_crores": 96.845,
+                "pat_crores": 9.788,
+                "total_assets_crores": None,
+                "total_liabilities_crores": None,
+                "source_page": 6,
+                "extraction_method": "TEXT_LINE",
+                "verification_status": "EXTRACTED",
+                "raw_data_provenance": {
+                    "source_page": 6,
+                    "source_pages": [6, 7],
+                    "line_items_extracted": {
+                        "revenue_crores": {"source_page": 6, "extraction_method": "TEXT_LINE"}
+                    },
+                },
+            },
+            {
+                "fiscal_year": "FY26",
+                "revenue_crores": 202.894,
+                "pat_crores": 22.315,
+                "total_assets_crores": None,
+                "total_liabilities_crores": None,
+                "source_page": 6,
+                "extraction_method": "TEXT_LINE",
+                "verification_status": "EXTRACTED",
+                "raw_data_provenance": {
+                    "source_page": 6,
+                    "source_pages": [6, 7],
+                    "line_items_extracted": {
+                        "revenue_crores": {"source_page": 6, "extraction_method": "TEXT_LINE"}
+                    },
+                },
+            },
+        ]
+
+        extractor = MagicMock(spec=PdfFinancialExtractor)
+        extractor.extract_financials.return_value = mock_obs
+        service = DocumentService(extractor=extractor)
+
+        # Run 1
+        count1 = service._extract_and_store_financials(db_session, doc, real_ipo, b"fake_pdf")
+        db_session.commit()
+        assert count1 == 3
+        assert doc.extraction_status == "PARTIAL"
+        recs1 = db_session.scalars(select(FinancialObservation).where(FinancialObservation.ipo_id == real_ipo.id)).all()
+        assert len(recs1) == 3
+
+        # Run 2
+        count2 = service._extract_and_store_financials(db_session, doc, real_ipo, b"fake_pdf")
+        db_session.commit()
+        assert count2 == 3
+        assert doc.extraction_status == "PARTIAL"
+        recs2 = db_session.scalars(select(FinancialObservation).where(FinancialObservation.ipo_id == real_ipo.id)).all()
+        assert len(recs2) == 3
+
+        # Provenance and null handling verification
+        for r in recs2:
+            assert r.extraction_method == "TEXT_LINE"
+            assert r.source_page == 6
+            assert r.total_assets_crores is None
+            assert r.total_liabilities_crores is None
+            assert r.verification_status == "EXTRACTED"
+            assert r.raw_data_provenance["source_pages"] == [6, 7]
+
+
 # ─── Live Smoke Test (opt-in) ──────────────────────────────────────────────────
 
 @pytest.mark.skipif(
@@ -647,3 +767,443 @@ class TestLiveSebiConnectivity:
             # Validate no fabricated zeros — key metrics may be None but not negative revenues
             if obs.get("revenue_crores") is not None:
                 assert obs["revenue_crores"] > 0
+
+
+# ─── Tests for Optimization, Telemetry, and Resilience Fixes ───────────────────
+
+class TestSebiOptimizationAndFixes:
+    def test_url_precheck_skips_download_when_unchanged(self, db_session: Session, real_ipo: IPO):
+        """Stored document matching URL and remote Content-Length skips full download."""
+        doc = Document(
+            ipo_id=real_ipo.id,
+            issuer_name=real_ipo.company_name,
+            document_type="RHP",
+            version_number=1,
+            file_name="cached.pdf",
+            file_url="https://www.sebi.gov.in/test/cached.pdf",
+            file_hash_sha256="abc123cachedhash",
+            file_size_bytes=500000,
+            is_current=True,
+            extraction_status="EXTRACTED",
+        )
+        db_session.add(doc)
+        db_session.commit()
+
+        adapter = MagicMock(spec=SebiPublicIssuesAdapter)
+        adapter.resolve_pdf_url.return_value = "https://www.sebi.gov.in/test/cached.pdf"
+        adapter.probe_document_metadata.return_value = {
+            "content_length": 500000,
+            "last_modified": "Mon, 12 Oct 2026 10:00:00 GMT",
+            "status_code": 200,
+        }
+
+        service = DocumentService(adapter=adapter)
+        outcome = service._process_single_filing(
+            db=db_session,
+            filing_meta={
+                "issuer_name": real_ipo.company_name,
+                "detail_url": "https://www.sebi.gov.in/detail/1",
+                "document_type": "RHP",
+            },
+            force_recheck=False,
+        )
+
+        assert outcome["already_stored"] == 1
+        adapter.fetch_document.assert_not_called()
+
+    def test_url_precheck_downloads_when_remote_size_changes(self, db_session: Session, real_ipo: IPO):
+        """When remote Content-Length differs from stored size, document is downloaded and verified."""
+        doc = Document(
+            ipo_id=real_ipo.id,
+            issuer_name=real_ipo.company_name,
+            document_type="RHP",
+            version_number=1,
+            file_name="cached.pdf",
+            file_url="https://www.sebi.gov.in/test/changed.pdf",
+            file_hash_sha256="oldhash123",
+            file_size_bytes=500000,
+            is_current=True,
+            extraction_status="EXTRACTED",
+        )
+        db_session.add(doc)
+        db_session.commit()
+
+        adapter = MagicMock(spec=SebiPublicIssuesAdapter)
+        adapter.resolve_pdf_url.return_value = "https://www.sebi.gov.in/test/changed.pdf"
+        adapter.probe_document_metadata.return_value = {
+            "content_length": 650000,  # Changed size!
+            "last_modified": "Mon, 12 Oct 2026 12:00:00 GMT",
+            "status_code": 200,
+        }
+        adapter.fetch_document.return_value = {
+            "payload": b"%PDF-new-content",
+            "file_size_bytes": 650000,
+            "file_hash_sha256": "newhash456",
+            "content_type": "application/pdf",
+            "retrieved_at": datetime.now(timezone.utc),
+            "source_url": "https://www.sebi.gov.in/test/changed.pdf",
+        }
+
+        service = DocumentService(adapter=adapter)
+        outcome = service._process_single_filing(
+            db=db_session,
+            filing_meta={
+                "issuer_name": real_ipo.company_name,
+                "detail_url": "https://www.sebi.gov.in/detail/2",
+                "document_type": "RHP",
+            },
+            force_recheck=False,
+        )
+
+        adapter.fetch_document.assert_called_once_with("https://www.sebi.gov.in/test/changed.pdf")
+        assert outcome["processed"] == 1
+
+    def test_force_recheck_bypasses_cache(self, db_session: Session, real_ipo: IPO):
+        """force_recheck=True bypasses URL pre-check cache and invokes fetch_document."""
+        doc = Document(
+            ipo_id=real_ipo.id,
+            issuer_name=real_ipo.company_name,
+            document_type="RHP",
+            version_number=1,
+            file_name="cached.pdf",
+            file_url="https://www.sebi.gov.in/test/force.pdf",
+            file_hash_sha256="existinghash",
+            file_size_bytes=500000,
+            is_current=True,
+            extraction_status="EXTRACTED",
+        )
+        db_session.add(doc)
+        db_session.commit()
+
+        adapter = MagicMock(spec=SebiPublicIssuesAdapter)
+        adapter.resolve_pdf_url.return_value = "https://www.sebi.gov.in/test/force.pdf"
+        adapter.fetch_document.return_value = {
+            "payload": b"%PDF-same-content",
+            "file_size_bytes": 500000,
+            "file_hash_sha256": "existinghash",
+            "content_type": "application/pdf",
+            "retrieved_at": datetime.now(timezone.utc),
+            "source_url": "https://www.sebi.gov.in/test/force.pdf",
+        }
+
+        service = DocumentService(adapter=adapter)
+        outcome = service._process_single_filing(
+            db=db_session,
+            filing_meta={
+                "issuer_name": real_ipo.company_name,
+                "detail_url": "https://www.sebi.gov.in/detail/3",
+                "document_type": "RHP",
+            },
+            force_recheck=True,
+        )
+
+        adapter.fetch_document.assert_called_once_with("https://www.sebi.gov.in/test/force.pdf")
+        assert outcome["already_stored"] == 1
+
+    def test_abridged_prospectus_triggers_financial_extraction(self, db_session: Session, real_ipo: IPO):
+        """Documents of type ABRIDGED_PROSPECTUS trigger financial extraction."""
+        adapter = MagicMock(spec=SebiPublicIssuesAdapter)
+        adapter.resolve_pdf_url.return_value = "https://www.sebi.gov.in/test/abridged.pdf"
+        adapter.probe_document_metadata.return_value = None
+        adapter.fetch_document.return_value = {
+            "payload": b"%PDF-mock-abridged",
+            "file_size_bytes": 120000,
+            "file_hash_sha256": "abridgedhash999",
+            "content_type": "application/pdf",
+            "retrieved_at": datetime.now(timezone.utc),
+            "source_url": "https://www.sebi.gov.in/test/abridged.pdf",
+        }
+
+        service = DocumentService(adapter=adapter)
+        with patch.object(service, "_extract_and_store_financials", return_value=3) as mock_extract:
+            outcome = service._process_single_filing(
+                db=db_session,
+                filing_meta={
+                    "issuer_name": real_ipo.company_name,
+                    "detail_url": "https://www.sebi.gov.in/detail/abridged",
+                    "document_type": "ABRIDGED_PROSPECTUS",
+                },
+            )
+            assert mock_extract.called
+            assert outcome["financials_extracted"] == 3
+
+    def test_document_telemetry_reconciliation_with_partial(self, db_session: Session, real_ipo: IPO):
+        """get_document_status correctly tallies PARTIAL and reconciles to total_documents."""
+        # Clean up existing test documents
+        db_session.query(Document).delete()
+        db_session.commit()
+
+        statuses = ["EXTRACTED", "PARTIAL", "PENDING", "UNMATCHED", "FAILED"]
+        for idx, st in enumerate(statuses):
+            d = Document(
+                ipo_id=real_ipo.id if st != "UNMATCHED" else None,
+                issuer_name=real_ipo.company_name,
+                document_type="RHP",
+                version_number=1,
+                file_name=f"doc_{idx}.pdf",
+                file_url=f"https://example.com/doc_{idx}.pdf",
+                file_hash_sha256=f"hash_{idx}_{st}",
+                extraction_status=st,
+            )
+            db_session.add(d)
+        db_session.commit()
+
+        service = DocumentService()
+        status = service.get_document_status(db_session)
+
+        assert status["total_documents"] == 5
+        assert status["extracted"] == 1
+        assert status["partial"] == 1
+        assert status["pending"] == 1
+        assert status["unmatched"] == 1
+        assert status["failed"] == 1
+        assert (
+            status["total_documents"]
+            == status["extracted"] + status["partial"] + status["pending"] + status["unmatched"] + status["failed"]
+        )
+
+    def test_fetch_document_transient_retry_success(self):
+        """fetch_document successfully retries when initial attempt encounters RequestError."""
+        adapter = SebiPublicIssuesAdapter(timeout=5.0)
+
+        mock_resp_success = MagicMock()
+        mock_resp_success.status_code = 200
+        mock_resp_success.headers = {"content-type": "application/pdf", "content-length": "100"}
+        mock_resp_success.iter_bytes.return_value = [b"%PDF-success"]
+
+        mock_stream_ctx_fail = MagicMock()
+        mock_stream_ctx_fail.__enter__.side_effect = httpx.RemoteProtocolError("peer closed connection")
+
+        mock_stream_ctx_ok = MagicMock()
+        mock_stream_ctx_ok.__enter__.return_value = mock_resp_success
+
+        with patch("httpx.Client") as mock_client_cls:
+            mock_client = MagicMock()
+            mock_client_cls.return_value.__enter__.return_value = mock_client
+            mock_client.stream.side_effect = [mock_stream_ctx_fail, mock_stream_ctx_ok]
+
+            result = adapter.fetch_document("https://example.com/test.pdf", max_retries=1)
+            assert result["file_hash_sha256"] is not None
+            assert mock_client.stream.call_count == 2
+
+    def test_fetch_document_retry_exhausted_raises(self):
+        """fetch_document raises SebiConnectionError after retry is exhausted."""
+        adapter = SebiPublicIssuesAdapter(timeout=5.0)
+
+        mock_stream_ctx_fail = MagicMock()
+        mock_stream_ctx_fail.__enter__.side_effect = httpx.ConnectTimeout("connection timed out")
+
+        with patch("httpx.Client") as mock_client_cls:
+            mock_client = MagicMock()
+            mock_client_cls.return_value.__enter__.return_value = mock_client
+            mock_client.stream.return_value = mock_stream_ctx_fail
+
+            with pytest.raises(SebiConnectionError, match="Download failed for"):
+                adapter.fetch_document("https://example.com/test.pdf", max_retries=1)
+
+    def test_concurrent_sebi_sync_rejected(self, db_session: Session):
+        """Starting a SEBI sync while one is active raises RuntimeError."""
+        # Create an active running job started 10 seconds ago
+        job = IngestionJob(
+            job_type="DOCUMENT_SYNC",
+            source_system="SEBI_PUBLIC_FILINGS",
+            status="RUNNING",
+            started_at=datetime.now(timezone.utc),
+            records_processed=0,
+        )
+        db_session.add(job)
+        db_session.commit()
+
+        service = DocumentService()
+        with pytest.raises(RuntimeError, match="currently in progress"):
+            service.sync_sebi_documents(db=db_session, max_documents=5)
+
+
+class TestPendingExtractionAndDiskCache:
+    def test_pending_stored_document_extracted_via_queue(self, db_session: Session, real_ipo: IPO):
+        """Stored eligible document with PENDING extraction is processed by extract_pending_documents."""
+        doc = Document(
+            ipo_id=real_ipo.id,
+            issuer_name=real_ipo.company_name,
+            document_type="ABRIDGED_PROSPECTUS",
+            version_number=1,
+            file_name="pending_abridged.pdf",
+            file_url="https://www.sebi.gov.in/test/pending_abridged.pdf",
+            file_hash_sha256="hash_pending_123",
+            file_size_bytes=100000,
+            is_current=True,
+            extraction_status="PENDING",
+        )
+        db_session.add(doc)
+        db_session.commit()
+
+        adapter = MagicMock(spec=SebiPublicIssuesAdapter)
+        adapter.fetch_document.return_value = {
+            "payload": b"%PDF-mock",
+            "file_size_bytes": 100000,
+            "file_hash_sha256": "hash_pending_123",
+            "content_type": "application/pdf",
+            "retrieved_at": datetime.now(timezone.utc),
+            "source_url": doc.file_url,
+            "from_cache": True,
+        }
+
+        service = DocumentService(adapter=adapter)
+        with patch.object(service, "_extract_and_store_financials", return_value=3) as mock_store:
+            # Emulate status update inside _extract_and_store_financials
+            def fake_store(db, document, ipo, pdf_bytes):
+                document.extraction_status = "EXTRACTED"
+                return 3
+            mock_store.side_effect = fake_store
+
+            result = service.extract_pending_documents(db=db_session, limit=5)
+            assert result["processed"] == 1
+            assert result["extracted"] == 1
+            assert doc.extraction_status == "EXTRACTED"
+            mock_store.assert_called_once()
+
+    def test_already_extracted_document_not_reprocessed(self, db_session: Session, real_ipo: IPO):
+        """A document already EXTRACTED is not re-queued by extract_pending_documents."""
+        doc = Document(
+            ipo_id=real_ipo.id,
+            issuer_name=real_ipo.company_name,
+            document_type="ABRIDGED_PROSPECTUS",
+            version_number=1,
+            file_name="done.pdf",
+            file_url="https://www.sebi.gov.in/test/done.pdf",
+            file_hash_sha256="hash_done_456",
+            file_size_bytes=100000,
+            is_current=True,
+            extraction_status="EXTRACTED",
+        )
+        db_session.add(doc)
+        db_session.commit()
+
+        adapter = MagicMock(spec=SebiPublicIssuesAdapter)
+        service = DocumentService(adapter=adapter)
+
+        result = service.extract_pending_documents(db=db_session, limit=5)
+        assert result["queued"] == 0
+        assert result["processed"] == 0
+        adapter.fetch_document.assert_not_called()
+
+    def test_repeated_extraction_creates_no_duplicate_financial_observations(self, db_session: Session, real_ipo: IPO):
+        """Running extraction on the same document twice does not duplicate financial observations."""
+        doc = Document(
+            ipo_id=real_ipo.id,
+            issuer_name=real_ipo.company_name,
+            document_type="ABRIDGED_PROSPECTUS",
+            version_number=1,
+            file_name="repeat.pdf",
+            file_url="https://www.sebi.gov.in/test/repeat.pdf",
+            file_hash_sha256="hash_repeat_789",
+            file_size_bytes=100000,
+            is_current=True,
+            extraction_status="PENDING",
+        )
+        db_session.add(doc)
+        db_session.commit()
+
+        mock_obs = [
+            {"fiscal_year": "FY26", "revenue_crores": 100.0, "pat_crores": 10.0, "source_page": 5},
+            {"fiscal_year": "FY25", "revenue_crores": 80.0, "pat_crores": 8.0, "source_page": 5},
+        ]
+
+        extractor = MagicMock()
+        extractor.extract_financials.return_value = mock_obs
+
+        service = DocumentService(extractor=extractor)
+
+        # First extraction run
+        count1 = service._extract_and_store_financials(db=db_session, document=doc, ipo=real_ipo, pdf_bytes=b"pdf1")
+        db_session.commit()
+        assert count1 == 2
+
+        obs_count1 = db_session.scalar(
+            select(func.count(FinancialObservation.id)).where(FinancialObservation.ipo_id == real_ipo.id)
+        )
+        assert obs_count1 == 2
+
+        # Second extraction run on same document
+        count2 = service._extract_and_store_financials(db=db_session, document=doc, ipo=real_ipo, pdf_bytes=b"pdf1")
+        db_session.commit()
+        assert count2 == 2
+
+        obs_count2 = db_session.scalar(
+            select(func.count(FinancialObservation.id)).where(FinancialObservation.ipo_id == real_ipo.id)
+        )
+        # Invariant: exactly 2 rows, no duplicates
+        assert obs_count2 == 2
+
+    def test_failed_extraction_records_meaningful_error(self, db_session: Session, real_ipo: IPO):
+        """When an extraction failure occurs, document is marked FAILED with meaningful extraction_error."""
+        doc = Document(
+            ipo_id=real_ipo.id,
+            issuer_name=real_ipo.company_name,
+            document_type="ABRIDGED_PROSPECTUS",
+            version_number=1,
+            file_name="corrupt.pdf",
+            file_url="https://www.sebi.gov.in/test/corrupt.pdf",
+            file_hash_sha256="hash_corrupt_000",
+            file_size_bytes=100000,
+            is_current=True,
+            extraction_status="PENDING",
+        )
+        db_session.add(doc)
+        db_session.commit()
+
+        adapter = MagicMock(spec=SebiPublicIssuesAdapter)
+        adapter.fetch_document.return_value = {
+            "payload": b"bad-bytes",
+            "file_size_bytes": 100000,
+            "file_hash_sha256": "hash_corrupt_000",
+            "content_type": "application/pdf",
+            "retrieved_at": datetime.now(timezone.utc),
+            "source_url": doc.file_url,
+        }
+
+        service = DocumentService(adapter=adapter)
+        with patch.object(service, "_extract_and_store_financials", side_effect=ValueError("Corrupted table layout")):
+            result = service.extract_pending_documents(db=db_session, document_id=doc.id)
+            assert result["failed"] == 1
+            assert doc.extraction_status == "FAILED"
+            assert "Corrupted table layout" in doc.extraction_error
+
+    def test_disk_cache_avoids_network_call(self, tmp_path):
+        """When PDF bytes exist in local disk cache, fetch_document returns cached bytes without network request."""
+        cache_dir = str(tmp_path / "pdf_cache")
+        adapter = SebiPublicIssuesAdapter(cache_dir=cache_dir)
+
+        payload = b"%PDF-cached-content-12345"
+        file_hash = hashlib.sha256(payload).hexdigest()
+        adapter.save_to_cache(file_hash, payload)
+
+        with patch("httpx.Client") as mock_client:
+            doc_data = adapter.fetch_document("https://example.com/doc.pdf", expected_hash=file_hash)
+            assert doc_data["from_cache"] is True
+            assert doc_data["payload"] == payload
+            assert doc_data["file_hash_sha256"] == file_hash
+            mock_client.assert_not_called()
+
+    def test_ipo_financials_endpoint_reflects_actual_db(self, client: TestClient, db_session: Session, real_ipo: IPO):
+        """GET /ipos/{id}/financials returns exact database financial observation records."""
+        obs = FinancialObservation(
+            ipo_id=real_ipo.id,
+            fiscal_year="FY26",
+            revenue_crores=150.0,
+            pat_crores=20.0,
+            verification_status="EXTRACTED",
+        )
+        db_session.add(obs)
+        db_session.commit()
+
+        resp = client.get(f"/api/v1/ipos/{real_ipo.id}/financials")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+        item = data["items"][0]
+        assert item["fiscal_year"] == "FY26"
+        assert item["revenue_crores"] == 150.0
+        assert item["pat_crores"] == 20.0
+
+

@@ -1,0 +1,785 @@
+================= PAGE 1 =================
+--- TEXT ---
+NITYAS GEMS AND JEWELLERY LIMITED
+Corporate identity number: U36996GJ2022PLC131404
+REGISTERED OFFICE CORPORATE CONTACT PERSON EMAIL AND TELEPHONE WEBSITE
+OFFICE
+Sector-1, 6th & 7th Floor, Ratih Not Applicable Manvi Meet Shah E-mail: cs@nityas.in www.nityas.in
+House, SY-376, TPS-4, PI-7, (Company Secretary and Telephone: +91 70462 19807
+Paiki Part-B, Parshottam Farm Compliance Officer)
+Compound, Opp. Podar Arcade,
+Varachha Road, A. K. Road,
+Surat – 395 008,Gujarat, India
+OUR PROMOTERS: RAJNIKANT LALLUBHAI CHANCHAD, SONALBEN RAJNIKANT CHANCHAD AND SAVALIYA DHRUV JANAKBHAI
+DETAILS OF THE ISSUE TO THE PUBLIC
+TYPE SIZE OF FRESH SIZE OF OFFER TOTAL ISSUE SIZE ELIGIBILITY AND RESERVATION
+ISSUE FOR SALE
+Fresh Issue Up to 14,456,000 Equity Not applicable Up to 14,456,000 The Issue is being made pursuant to Regulation 6(1) of the Securities and
+Shares of face value of ₹5 Equity Shares of face Exchange Board of India (Issue of Capital and Disclosure Requirements)
+each aggregating up to ₹ value of ₹5 each Regulations, 2018, as amended (“SEBI ICDR Regulations”). For further
+[●] million aggregating up to ₹[●] details, see “Other Regulatory and Statutory Disclosures – Eligibility for
+million the Issue” on page Error! Bookmark not defined.. For details in relation
+to share reservation among QIBs, NIIs, RIBs and Eligible Employees see
+“Issue Structure” beginning on page 477 of the Red Herring Prospectus.
+RISKS IN RELATION TO THE FIRST ISSUE
+This being the first public offering of Equity Shares of face value of ₹5 each of our Company, there has been no formal market for the Equity Shares. The Floor Price, Cap Price
+and Issue Price (as determined by our Company, in consultation with the Book Running Lead Manager, in accordance with the SEBI ICDR Regulations and on the basis of the
+assessment of market demand for the Equity Shares by way of the Book Building Process, as stated under “Basis for the Issue Price” on page 150 of the Red Herring Prospectus,
+should not be considered to be indicative of the market price of the Equity Shares after the Equity Shares are listed. No assurance can be given regarding an active and/or sustained
+trading in the Equity Shares nor regarding the price at which the Equity Shares will be traded after listing.
+GENERAL RISK
+Investments in equity and equity-related securities involve a degree of risk and investors should not invest any funds in the Issue unless they can afford to take the risk of losing
+their entire investment. Investors are advised to read the risk factors carefully before taking an investment decision in the Issue. For taking an investment decision, investors must
+rely on their own examination of our Company and the Issue, including the risks involved. The Equity Shares in the Issue have not been recommended or approved by the
+Securities and Exchange Board of India (“SEBI”), nor does SEBI guarantee the accuracy or adequacy of the contents of this Red Herring Prospectus. Specific attention of the
+investors is invited to “Risk Factors” on page 26 of the Red Herring Prospectus.
+COMPANY’S ABSOLUTE RESPONSIBILITY
+Our Company, having made all reasonable inquiries, accepts responsibility for and confirms that this Red Herring Prospectus contains all information with regard to our Company
+and the Issue, which is material in the context of the Issue, that the information contained in this Red Herring Prospectus is true and correct in all material aspects and is not
+misleading in any material respect, that the opinions and intentions expressed herein are honestly held and that there are no other facts, the omission of which makes this Red
+Herring Prospectus as a whole or any of such information or the expression of any such opinions or intentions, misleading in any material respect.
+LISTING
+The Equity Shares, once issued through this Red Herring Prospectus are proposed to be listed on BSE Limited (“BSE”) and the National Stock Exchange of India Limited
+(“NSE”). For the purpose of the Issue, NSE shall be the Designated Stock Exchange.
+BOOK RUNNING LEAD MANAGER
+Name of the Book Running Lead Manager and Logo Contact Person Telephone and Email
+Nimisha Joshi / Yogesh Mody Telephone: +91 22 6707 9999 / 7919
+E-mail: ngjl.ipo@choiceindia.com
+Choice Capital Advisors Private Limited
+REGISTRAR TO THE ISSUE
+Name of Registrar and Logo Contact Person Telephone and Email
+Vinayak Morbale E-mail: ipo@bigshareonline.com
+Telephone: +91 22-6263 8200
+Bigshare Services Private Limited
+BID/ ISSUE PERIOD
+ANCHOR INVESTOR Tuesday, September BID/ ISSUE OPENS Wednesday, BID/ ISSUE CLOSES Monday, October 5,
+BID/ ISSUE PERIOD 29, 2026(1) ON September 30, ON 2026(2)(3)
+2026(2)
+1. The Anchor Investor Bidding Date is 1 (one) Working Day prior to the Bid/Issue Opening Date.
+2. Our Company may, in consultation with the Book Running Lead Manager, consider closing the Bid/Issue Period for QIBs 1 (one) Working Day prior to the Bid/Issue Closing Date in accordance with the SEBI
+ICDR Regulations.
+3. The UPI mandate end time and date shall be at 5:00 p.m. on Bid/Issue Closing Day.
+--- TABLES (1) ---
+Table 1 (24 rows):
+['REGISTERED OFFICE', None, None, None, None, '', 'CORPORATE', None, None, None, '', 'CONTACT PERSON', None, None, None, None, 'EMAIL AND TELEPHONE', None, None, None, 'WEBSITE', None]
+[None, None, None, None, None, None, 'OFFICE', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+['Sector-1, 6th & 7th Floor, Ratih\nHouse, SY-376, TPS-4, PI-7,\nPaiki Part-B, Parshottam Farm\nCompound, Opp. Podar Arcade,\nVarachha Road, A. K. Road,\nSurat – 395 008,Gujarat, India', None, None, None, None, 'Not Applicable', None, None, None, None, None, 'Manvi Meet Shah\n(Company Secretary and\nCompliance Officer)', None, None, None, None, 'E-mail: cs@nityas.in\nTelephone: +91 70462 19807', None, None, None, 'www.nityas.in', None]
+['', 'OUR PROMOTERS: RAJNIKANT LALLUBHAI CHANCHAD, SONALBEN RAJNIKANT CHANCHAD AND SAVALIYA DHRUV JANAKBHAI', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, '']
+['', 'DETAILS OF THE ISSUE TO THE PUBLIC', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, '']
+['TYPE', 'TYPE', '', 'SIZE OF FRESH', None, None, None, '', '', 'SIZE OF OFFER', None, None, None, '', 'TOTAL ISSUE SIZE', None, 'ELIGIBILITY AND RESERVATION', 'ELIGIBILITY AND RESERVATION', None, None, None, None]
+[None, None, None, 'ISSUE', None, None, None, None, None, 'FOR SALE', None, None, None, None, None, None, None, None, None, None, None, None]
+['Fresh Issue', None, 'Up to 14,456,000 Equity\nShares of face value of ₹5\neach aggregating up to ₹\n[●] million', None, None, None, None, None, 'Not applicable', None, None, None, None, None, 'Up to 14,456,000\nEquity Shares of face\nvalue of ₹5 each\naggregating up to ₹[●]\nmillion', None, 'The Issue is being made pursuant to Regulation 6(1) of the Securities and\nExchange Board of India (Issue of Capital and Disclosure Requirements)\nRegulations, 2018, as amended (“SEBI ICDR Regulations”). For further\ndetails, see “Other Regulatory and Statutory Disclosures – Eligibility for\nthe Issue” on page Error! Bookmark not defined.. For details in relation\nto share reservation among QIBs, NIIs, RIBs and Eligible Employees see\n“Issue Structure” beginning on page 477 of the Red Herring Prospectus.', None, None, None, None, None]
+['', 'RISKS IN RELATION TO THE FIRST ISSUE', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, '']
+['This being the first public offering of Equity Shares of face value of ₹5 each of our Company, there has been no formal market for the Equity Shares. The Floor Price, Cap Price\nand Issue Price (as determined by our Company, in consultation with the Book Running Lead Manager, in accordance with the SEBI ICDR Regulations and on the basis of the\nassessment of market demand for the Equity Shares by way of the Book Building Process, as stated under “Basis for the Issue Price” on page 150 of the Red Herring Prospectus,\nshould not be considered to be indicative of the market price of the Equity Shares after the Equity Shares are listed. No assurance can be given regarding an active and/or sustained\ntrading in the Equity Shares nor regarding the price at which the Equity Shares will be traded after listing.', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+['', 'GENERAL RISK', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, '']
+['Investments in equity and equity-related securities involve a degree of risk and investors should not invest any funds in the Issue unless they can afford to take the risk of losing\ntheir entire investment. Investors are advised to read the risk factors carefully before taking an investment decision in the Issue. For taking an investment decision, investors must\nrely on their own examination of our Company and the Issue, including the risks involved. The Equity Shares in the Issue have not been recommended or approved by the\nSecurities and Exchange Board of India (“SEBI”), nor does SEBI guarantee the accuracy or adequacy of the contents of this Red Herring Prospectus. Specific attention of the\ninvestors is invited to “Risk Factors” on page 26 of the Red Herring Prospectus.', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+['', 'COMPANY’S ABSOLUTE RESPONSIBILITY', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, '']
+['Our Company, having made all reasonable inquiries, accepts responsibility for and confirms that this Red Herring Prospectus contains all information with regard to our Company\nand the Issue, which is material in the context of the Issue, that the information contained in this Red Herring Prospectus is true and correct in all material aspects and is not\nmisleading in any material respect, that the opinions and intentions expressed herein are honestly held and that there are no other facts, the omission of which makes this Red\nHerring Prospectus as a whole or any of such information or the expression of any such opinions or intentions, misleading in any material respect.', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+['', 'LISTING', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, '']
+['The Equity Shares, once issued through this Red Herring Prospectus are proposed to be listed on BSE Limited (“BSE”) and the National Stock Exchange of India Limited\n(“NSE”). For the purpose of the Issue, NSE shall be the Designated Stock Exchange.', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+['', 'BOOK RUNNING LEAD MANAGER', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, '']
+['Name of the Book Running Lead Manager and Logo', None, None, None, None, None, None, None, None, None, None, None, 'Contact Person', None, None, None, None, None, None, 'Telephone and Email', None, None]
+['Choice Capital Advisors Private Limited', None, None, None, None, None, None, None, None, None, None, None, 'Nimisha Joshi / Yogesh Mody', None, None, None, None, None, None, 'Telephone: +91 22 6707 9999 / 7919\nE-mail: ngjl.ipo@choiceindia.com', None, None]
+['', 'REGISTRAR TO THE ISSUE', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, '']
+['Name of Registrar and Logo', None, None, None, None, None, None, None, None, None, None, None, 'Contact Person', None, None, None, None, None, None, 'Telephone and Email', None, None]
+['Bigshare Services Private Limited', None, None, None, None, None, None, None, None, None, None, None, 'Vinayak Morbale', None, None, None, None, None, None, 'E-mail: ipo@bigshareonline.com\nTelephone: +91 22-6263 8200', None, None]
+['', 'BID/ ISSUE PERIOD', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, '']
+['ANCHOR INVESTOR\nBID/ ISSUE PERIOD', None, None, None, 'Tuesday, September\n29, 2026(1)', None, None, None, None, None, None, 'BID/ ISSUE OPENS\nON', None, None, None, 'Wednesday,\nSeptember 30,\n2026(2)', None, None, 'BID/ ISSUE CLOSES\nON', None, 'Monday, October 5,\n2026(2)(3)', None]
+
+================= PAGE 2 =================
+--- TEXT ---
+IN THE NATURE OF ABRIDGED PROSPECTUS - MEMORANDUM CONTAINING SALIENT FEATURES
+OF THE RED HERRING PROSPECTUS
+The following is a general summary of certain disclosures in the Red Herring Prospectus and the
+terms of the Issue and is not exhaustive, nor does it purport to contain a summary of all the
+disclosures in the Red Herring Prospectus or all details relevant to prospective investors. This
+summary should be read in conjunction with, and is qualified in its entirety by, the more detailed
+information appearing elsewhere in the Red Herring Prospectus, which is available at the websites
+of SEBI at www.sebi.gov.in, National Stock Exchange of India Limited and BSE Limited at
+www.nseindia.com and www.bseindia.com, respectively, the Company at www.nityas.in and the
+Please scan this QR code BRLM at www.choiceindia.com/merchant-investment-banking.
+to view the Red Herring
+Prospectus and the References below to page numbers are to page numbers of the Red Herring Prospectus dated
+Abridged Prospectus September 24, 2026. Unless otherwise specified all capitalised terms used herein and not
+specifically defined bear the same meaning as ascribed to them in the Red Herring Prospectus.
+1. Summary of the primary business
+a. Business Overview - Products and Services
+The Company is engaged in the design, manufacturing and sale of lab-grown diamond studded gold jewellery in India,
+operating through an integrated business model comprising (i) B2B manufacturing and distribution to organised retailers,
+standalone retailers and wholesalers, and (ii) D2C omnichannel retail operations through its subsidiary, Ayaani Diamonds
+and Jewellery Private Limited. The Company operates across the value chain including sourcing, design, manufacturing,
+quality control, distribution and retail.
+The Company offers a diversified product portfolio comprising rings, earrings, pendants, bracelets, mangalsutras, nose
+pins, necklaces, cufflinks and bangles, catering to daily wear, occasion-based, men’s jewellery and customised segments.
+It primarily focuses on lightweight and affordable lab-grown diamond jewellery, targeting evolving consumer preferences
+for accessible luxury.
+b. Industries Served and Typical Customers
+The Company operates in the lab-grown diamond jewellery segment within the broader jewellery industry. Its B2B
+customers include organised jewellery retailers and brands, standalone retailers and wholesalers, while its D2C segment
+caters directly to end-consumers through retail stores and online channels.
+c. Segment Reporting and Revenue Contribution
+Our Company’s business is primarily organised into two segments, namely (i) B2B manufacturing and distribution and
+(ii) D2C retail operations. Our revenue from operations is predominantly derived from the B2B segment, with a growing
+contribution from the D2C segment post-acquisition of Ayaani, as set out below based on our Restated Consolidated
+Financial Information:
+(in ₹ million unless stated otherwise)
+Particulars Fiscal 2026 Fiscal 2025 Fiscal 2024
+Revenue % of Revenue % of Revenue % of
+from Revenue from Revenue from Revenue
+Operations from Operations from Operations from
+Operations Operations Operations
+Revenue from B2B Operations (A)
+Retail 498.48 24.57 451.11 46.58 131.55 24.52
+chains
+Standalone 867.44 42.75 167.20 17.26 90.16 16.80
+retailers
+1
+--- TABLES (2) ---
+Table 1 (1 rows):
+['Please scan this QR code\nto view the Red Herring\nProspectus and the\nAbridged Prospectus', 'The following is a general summary of certain disclosures in the Red Herring Prospectus and the\nterms of the Issue and is not exhaustive, nor does it purport to contain a summary of all the\ndisclosures in the Red Herring Prospectus or all details relevant to prospective investors. This\nsummary should be read in conjunction with, and is qualified in its entirety by, the more detailed\ninformation appearing elsewhere in the Red Herring Prospectus, which is available at the websites\nof SEBI at www.sebi.gov.in, National Stock Exchange of India Limited and BSE Limited at\nwww.nseindia.com and www.bseindia.com, respectively, the Company at www.nityas.in and the\nBRLM at www.choiceindia.com/merchant-investment-banking.\nReferences below to page numbers are to page numbers of the Red Herring Prospectus dated\nSeptember 24, 2026. Unless otherwise specified all capitalised terms used herein and not\nspecifically defined bear the same meaning as ascribed to them in the Red Herring Prospectus.']
+
+Table 2 (5 rows):
+['Particulars', '', 'Fiscal 2026', None, None, '', '', 'Fiscal 2025', None, None, '', '', 'Fiscal 2024', None, None, '']
+[None, 'Revenue\nfrom\nOperations', 'Revenue', '', '% of', '', 'Revenue\nfrom\nOperations', 'Revenue', '', '% of', '', 'Revenue\nfrom\nOperations', 'Revenue', '', '% of', '']
+[None, None, 'from', None, 'Revenue', None, None, 'from', None, 'Revenue', None, None, 'from', None, 'Revenue', None]
+[None, None, 'Operations', None, 'from', None, None, 'Operations', None, 'from', None, None, 'Operations', None, 'from', None]
+[None, None, None, None, 'Operations', None, None, None, None, 'Operations', None, None, None, None, 'Operations', None]
+
+================= PAGE 3 =================
+--- TEXT ---
+Particulars Fiscal 2026 Fiscal 2025 Fiscal 2024
+Revenue % of Revenue % of Revenue % of
+from Revenue from Revenue from Revenue
+Operations from Operations from Operations from
+Operations Operations Operations
+Revenue from B2B Operations (A)
+Wholesalers 573.26 28.25 350.06 36.15 314.80 58.67
+Sub-total 1,939.18 95.58 968.37 99.99 536.51 99.99
+(A)
+Revenue from D2C Operations (B)
+D2C – 17.90 0.88 - 0.00 - 0.00
+through
+retail stores
+D2C – 70.23 3.46 - 0.00 - 0.00
+through
+online sales
+Sub-total 88.13 4.34 - 0.00 - 0.00
+(B)
+Others (C) 1.63 0.08 0.07 0.01 0.04 0.01
+Total (A+B 2,028.94 100.00 968.45 100.00 536.55 100.00
++C)
+Note: We acquired Ayaani, our subsidiary, in July 2025 and accordingly there is no D2C sale in Fiscal 2024 and Fiscal 2025. The D2C revenues have
+been recognized only upon consolidation with effect from July 2025.
+Note: While we offer lab-grown diamond studded gold jewellery across multiple product categories, including rings, earrings, pendants, bracelets,
+mangalsutras, nose pins, necklaces, cufflinks and bangles, we do not separately track or maintain revenue from operations at an individual product-
+category level in our accounting and management information systems. Accordingly, historical revenue contribution and trends for each such product
+category are not available for the periods presented.
+As certified by Statutory Auditors vide their certificate dated September 23, 2026.
+d. Key Geographies
+During Fiscal 2026, Fiscal 2025 and Fiscal 2024, our revenue from operations was predominantly derived from
+domestic markets, contributing 97.44%, 99.93% and 99.15%, respectively, of our total revenue from operations. Our
+domestic revenues are geographically diversified across multiple states, with significant contributions from Gujarat,
+Karnataka, Maharashtra and Telangana. We also have an international presence, with overseas revenues contributing
+2.56%, 0.07% and 0.85% of our total revenue from operations during Fiscal 2026, Fiscal 2025 and Fiscal 2024,
+respectively, primarily from the United Arab Emirates, Canada, Taiwan, Australia and Kenya, on an order-driven
+basis.
+e. Revenue Concentration Among Top 5 Customers
+The table below sets forth details of our revenue from operations generated from top1, top 5 and top 10 customers in each
+of the respective periods indicated:
+(₹ in million, unless otherwise stated)
+Particulars As on Fiscal 2026 As on Fiscal 2025 As on Fiscal 2024
+Amount (₹ As a percentage Amount (₹ in As a percentage Amount (in ₹ As a
+inmillion) of revenue from million) of revenue from million) percentage of
+operations (in operations (in revenue from
+%) %) operations (in
+%)
+Top 1
+263.27 12.98 188.68** 19.48 102.57 19.12
+customers
+Top 5
+812.05 40.02 600.62 62.02 360.47 67.18
+customers
+Top 10
+1,125.95 55.49 742.62 76.68 451.99 84.24
+customers
+** Customer 1 was Ayaani Diamonds and Jewellery Private Limited which became subsidiary of the Company with effect from July 22,
+2025. Transaction with Ayaani Diamonds and Jewellery Private Limited were undertaken at arms length basis.
+As certified by Statutory Auditors vide their certificate dated September 23, 2026
+2
+--- TABLES (2) ---
+Table 1 (5 rows):
+['Particulars', '', 'Fiscal 2026', None, None, '', '', 'Fiscal 2025', None, None, '', '', 'Fiscal 2024', None, None, '']
+[None, 'Revenue\nfrom\nOperations', 'Revenue', '', '% of', '', 'Revenue\nfrom\nOperations', 'Revenue', '', '% of', '', 'Revenue\nfrom\nOperations', 'Revenue', '', '% of', '']
+[None, None, 'from', None, 'Revenue', None, None, 'from', None, 'Revenue', None, None, 'from', None, 'Revenue', None]
+[None, None, 'Operations', None, 'from', None, None, 'Operations', None, 'from', None, None, 'Operations', None, 'from', None]
+[None, None, None, None, 'Operations', None, None, None, None, 'Operations', None, None, None, None, 'Operations', None]
+
+Table 2 (6 rows):
+['Particulars', '', 'As on Fiscal 2026', None, None, '', '', 'As on Fiscal 2025', None, None, '', '', 'As on Fiscal 2024', None, None, '']
+[None, 'Amount (₹\ninmillion)', 'Amount (₹', 'As a percentage\nof revenue from\noperations (in\n%)', 'As a percentage', None, 'Amount (₹ in\nmillion)', 'Amount (₹ in', 'As a percentage\nof revenue from\noperations (in\n%)', 'As a percentage', None, 'Amount (in ₹\nmillion)', 'Amount (in ₹', '', 'As a', '']
+[None, None, 'inmillion)', None, 'of revenue from', None, None, 'million)', None, 'of revenue from', None, None, 'million)', None, 'percentage of', None]
+[None, None, None, None, 'operations (in', None, None, None, None, 'operations (in', None, None, None, None, 'revenue from', None]
+[None, None, None, None, '%)', None, None, None, None, '%)', None, None, None, None, 'operations (in', None]
+[None, None, None, None, None, None, None, None, None, None, None, None, None, None, '%)', None]
+
+================= PAGE 4 =================
+--- TEXT ---
+f. Key manufacturing or other Facilities
+Our manufacturing operations are carried out at our facility located at 5th, 6th and 7th Floor, Ratih House, Opp. Poddar
+Arcade, Varachha Road, Surat – 395 008, Gujarat, having an area of approximately 7,000 sq. ft. The facility is equipped
+with machinery and equipment for key manufacturing processes, including casting, filling, setting, polishing, electro-
+polishing and rhodium plating, along with CAD and CAM enabled tools, enabling us to undertake end-to-end
+manufacturing of lab-grown diamond studded gold jewellery. Our manufacturing facility has an installed production
+capacity of approximately 360 kg of lab-grown diamond studded gold jewellery per annum.
+In addition, our subsidiary, Ayaani, operates an omnichannel D2C platform comprising an online storefront and ten (10)
+physical retail stores across eight (8) cities in India, comprising seven (7) company-operated stores and three (3) franchise-
+operated stores.
+g. Business Strengths and Strategies
+Strengths
+The Company benefits from an integrated B2B and D2C business model, supported by in-house manufacturing, strong
+design capabilities and technology-enabled processes, enabling customised offerings, consistent quality and operational
+efficiency. Its presence in the growing lab-grown diamond jewellery segment, diversified customer base and scalable
+operations have supported consistent growth.
+Strategies
+The Company intends to expand its customer base, strengthen its D2C omnichannel presence under the “Ayaani” brand,
+and focus on design-led product innovation and portfolio expansion. It also aims to augment working capital to support
+growth while exploring selective export opportunities alongside its continued focus on the domestic market.
+For further and complete information, see “Our Business” beginning on page 206.
+2. Summary of the Industry (Source: CareEdge Report)
+The Company operates in the lab-grown diamond (“LGD”) jewellery segment within the broader gems and jewellery
+industry. The Indian gems and jewellery sector is a significant contributor to the economy, accounting for approximately
+7% of GDP and around 15% of total merchandise exports, with India being a global leader in diamond cutting and
+polishing.
+The LGD jewellery industry has witnessed rapid growth in recent years, driven by increasing consumer preference for
+affordable, sustainable and ethically sourced alternatives to natural diamonds. Lab-grown diamonds possess the same
+physical, chemical and optical properties as mined diamonds but are typically priced significantly lower, enabling wider
+consumer access.
+In India, the LGD jewellery market is expanding, supported by rising disposable incomes, urbanisation and evolving
+consumer preferences, particularly among younger demographics. Growth is also driven by increasing adoption across
+bridal, fashion and daily wear categories, as well as penetration into Tier-2 and Tier-3 cities.
+The industry benefits from increasing formalisation, rising demand for branded jewellery and the expansion of
+omnichannel retail. India’s strong manufacturing ecosystem and skilled workforce position it as a key global hub,
+although challenges such as perception issues and price volatility remain.
+For further information, see “Industry Overview” beginning on page 170.
+3. Promoters
+The Promoters of our Company are Rajnikant Lallubhai Chanchad, Sonalben Rajnikant Chanchad and Savaliya Dhruv
+Janakbhai
+3
+--- TABLES (0) ---
+================= PAGE 5 =================
+--- TEXT ---
+Sr. Name Individual/Corporate Experience and Educational Qualification / Corporate
+No. Information
+1. Rajnikant Lallubhai Individual He does not have any formal education. He has over 20 years
+Chanchad of experience in the gems and jewellery sector. He was
+honoured with the “Icon of the Jewellery Industry 2024” award
+by IDT in recognition of his outstanding contribution to the
+jewellery sector
+2. Sonalben Rajnikant Individual She does not have any formal education. She has over 5 years
+Chanchad of experience in the in the gems and jewellery sector.
+3. Savaliya Dhruv Individual He has completed his Bachelor of Civil Engineering from
+Janakbhai Gujarat Technological University. He is the author of the book
+titled ‘Choose Wealth’ He has approximately 4 years of
+experience in the Gems and Jewellery sector .
+For further information, see “Promoters and Promoter Group” beginning on page 273.
+4. Objects of the Issue
+The Net Proceeds are proposed to be utilized in accordance with the details set forth below:
+(₹ in million)
+Sr.
+Particulars Estimated amount
+No.
+1. Fu nding Working Capital requirements of our Company 700.00
+2. Ge neral corporate purposes * [●]
+*To be finalized on determination of the Issue Price and updated in the Prospectus prior to filing with the ROC. The amount utilized for
+general corporate purposes shall not exceed 25% of the Gross Proceeds of the Issue.
+For further information, see “Objects of the Issue” beginning on page 139.
+5. Pre-Issue and Post-Issue shareholding of our Promoters, members of the Promoter Group and top 10 Shareholders
+The aggregate shareholding, of each of the Promoters, members of our Promoter Group and top 10 Shareholders (other
+than our Promoters and members of our Promoter Group) is set out below:
+Sr. Pre-Issue shareholding as at the date of RHP Post-Issue shareholding as at Allotment(2)
+No. Shareholders Number of Shareholding At the lower end of the At the upper end of
+Equity (in %)(2) price band (₹[●]) the
+Shares(2) price band (₹[●])
+Number Shareholding Number Shareh
+of Equity (in %)(1) of Equity olding
+Shares(2) Shares(2) (in
+%)(2)
+Promoters
+1. Rajnikant Lallubhai Chanchad 22,440,000 52.02 [●] [●] [●] [●]
+2. Sonalben Rajnikant Chanchad 1,716,000 3.98 [●] [●] [●] [●]
+3 Savaliya Dhruv Janakbhai Nil
+Promoter Group (other than Promoters)
+1. Janakbhai N Savaliya 905,520 2.10 [●] [●] [●] [●]
+Top 10 Shareholders (other than Promoters and Promoter Group)
+1. Wealthwave Capital Trust- 2,200,000 5.10 [●] [●] [●] [●]
+Wealthwave Capital Fund
+2. Monpara Raj Dineshbhai 1,760,000 4.08 [●] [●] [●] [●]
+3. Riteshkumar Binod Kejriwal 1,650,000 3.83 [●] [●] [●] [●]
+(Sk Family Trust)
+4. Astha Aditya Kanodia 1,650,000 3.83 [●] [●] [●] [●]
+5. Rishabhkumar Mukeshbhai 1,540,000 3.57 [●] [●] [●] [●]
+Bothra
+6. Aditya Kanodia 880,000 2.04 [●] [●] [●] [●]
+7. Sulochana Binod Kejriwal 880,000 2.04 [●] [●] [●] [●]
+8. Gajera Hiteshbhai Babubhai 847,000 1.96 [●] [●] [●] [●]
+9. Namahratna Services Private 770,000 1.79 [●] [●] [●] [●]
+4
+--- TABLES (7) ---
+Table 1 (2 rows):
+['', 'Sr.', '', 'Name', 'Individual/Corporate', '', 'Experience and Educational Qualification / Corporate', '']
+[None, 'No.', None, None, None, None, 'Information', None]
+
+Table 2 (2 rows):
+['', 'Sr.', '', 'Particulars', 'Estimated amount']
+[None, 'No.', None, None, None]
+
+Table 3 (8 rows):
+['Sr.\nNo.', '', 'Pre-Issue shareholding as at the date of RHP', None, None, None, '', '', 'Post-Issue shareholding as at Allotment(2)', None, None, None, None, None, '']
+[None, 'Shareholders', 'Shareholders', 'Number of\nEquity\nShares(2)', 'Shareholding\n(in %)(2)', 'Shareholding', None, 'At the lower end of the\nprice band (₹[●])', 'At the lower end of the', None, '', 'At the upper end of', None, None, '']
+[None, None, None, None, None, '(in %)(2)', None, None, 'price band (₹[●])', None, None, 'the', None, None, None]
+[None, None, None, None, None, None, None, None, None, None, None, 'price band (₹[●])', None, None, None]
+[None, None, None, None, None, None, None, 'Number\nof Equity\nShares(2)', None, 'Shareholding\n(in %)(1)', 'Number\nof Equity\nShares(2)', 'Number', '', 'Shareh', '']
+[None, None, None, None, None, None, None, None, None, None, None, 'of Equity', None, 'olding', None]
+[None, None, None, None, None, None, None, None, None, None, None, 'Shares(2)', None, '(in', None]
+[None, None, None, None, None, None, None, None, None, None, None, None, None, '%)(2)', None]
+
+Table 4 (2 rows):
+['Sr.']
+['No.']
+
+Table 5 (3 rows):
+['Number of']
+['Equity']
+['Shares(2)']
+
+Table 6 (3 rows):
+['Number']
+['of Equity']
+['Shares(2)']
+
+Table 7 (2 rows):
+['Shareholding']
+['(in %)(1)']
+
+================= PAGE 6 =================
+--- TEXT ---
+Sr. Pre-Issue shareholding as at the date of RHP Post-Issue shareholding as at Allotment(2)
+No. Shareholders Number of Shareholding At the lower end of the At the upper end of
+Equity (in %)(2) price band (₹[●]) the
+Shares(2) price band (₹[●])
+Number Shareholding Number Shareh
+of Equity (in %)(1) of Equity olding
+Shares(2) Shares(2) (in
+%)(2)
+Limited
+10. Rajesh Pragjibhai Malaviya 770,000 1.79 [●] [●] [●] [●]
+Notes:
+1. Includes all options, if any, that have been exercised until date of Prospectus and any transfers of Equity Shares by existing shareholders after the
+date of the pre-Issue and Price Band advertisement until the date of the Prospectus.
+2. Based on the Issue price of ₹ [●] and subject to finalization of the basis of allotment.
+* rounded off to closest decimal
+For further details, see “Capital Structure” beginning on page 122.
+6. Summary of Restated Financial Information
+Summary of Restated Consolidated Financial Information
+Summary of selected financial information as at for the Fiscals 2026, 2025, and 2024, derived from our Restated
+Consolidated Financial Information is as follows:
+(in ₹ million unless indicated otherwise)
+Particulars Fiscal
+2026 2025 2024
+Share Capital 215.69 12.40 10.00
+Net worth(8) 794.30 225.72 53.29
+Revenue 2,028.94 968.45 536.55
+EBITDA 309.74 129.01 54.76
+Profit/(loss) after tax 223.15 97.88 40.24
+Earnings per share (basic) (in ₹)(1) 5.52 4.37 1.83
+Earnings per share (diluted) (in ₹)(2) 5.52 4.37 1.83
+Return on Net Worth(3)(4) 43.75% 70.17% 122.44%
+Net Asset Value per Equity Share (in ₹)(5) (6) 15.13 9.53 2.40
+Total borrowings(7) 234.24 75.98 36.84
+Cash flow from operating activities (147.32) (100.52) (10.51)
+Cash flow from investing activities (19.93) (4.19) (8.25)
+Cash flow from financing activities 168.58 107.15 17.26
+Notes:
+1. Basic EPS = Net Profit after tax, as restated, attributable to the owners of the company divided by weighted average no. of equity
+shares outstanding during the year/period as adjusted for share split and bonus issue approved by the shareholders at the Extra
+Ordinary General Meeting held on March 13, 2026.
+2. Diluted EPS = Net Profit after tax, as restated, attributable to the owners of the company divided by weighted average no. of
+diluted equity shares outstanding during the year/period as adjusted for share split and bonus issue approved by the shareholders
+at the Extra Ordinary General Meeting held on March 13, 2026.
+3. Return on Net Worth (%) = Net Profit after tax attributable to owner of the company, as restated for the end of the fiscal/period
+divided by Average Net worth as at the end of the fiscal/period.
+4. Average net worth means the average of the net worth of current and previous financial year/period. Net worth means the
+aggregate value of the paid-up share capital, other equity and non-controlling interest.
+5. Net Asset Value per equity share represents net worth attributable to Equity Shareholder (Equity Share capital together with and
+other equity as per Restated Consolidated Financial Information) as at the end of the financial year divided by the weighted
+average number of Equity Shares outstanding at the end of the year.
+6. The weighted average number of equity shares has been presented to reflect the adjustments for issue of bonus shares.
+7. Total borrowing includes non-current borrowing and non-current lease liabilities plus current borrowing and current lease
+liabilities.
+8. Net worth means the aggregate value of the paid-up share capital, other equity as per the restated consolidated financial
+information.
+5
+--- TABLES (6) ---
+Table 1 (8 rows):
+['Sr.\nNo.', '', 'Pre-Issue shareholding as at the date of RHP', None, None, None, '', '', 'Post-Issue shareholding as at Allotment(2)', None, None, None, None, None, '']
+[None, 'Shareholders', 'Shareholders', 'Number of\nEquity\nShares(2)', 'Shareholding\n(in %)(2)', 'Shareholding', None, 'At the lower end of the\nprice band (₹[●])', 'At the lower end of the', None, '', 'At the upper end of', None, None, '']
+[None, None, None, None, None, '(in %)(2)', None, None, 'price band (₹[●])', None, None, 'the', None, None, None]
+[None, None, None, None, None, None, None, None, None, None, None, 'price band (₹[●])', None, None, None]
+[None, None, None, None, None, None, None, 'Number\nof Equity\nShares(2)', None, 'Shareholding\n(in %)(1)', 'Number\nof Equity\nShares(2)', 'Number', '', 'Shareh', '']
+[None, None, None, None, None, None, None, None, None, None, None, 'of Equity', None, 'olding', None]
+[None, None, None, None, None, None, None, None, None, None, None, 'Shares(2)', None, '(in', None]
+[None, None, None, None, None, None, None, None, None, None, None, None, None, '%)(2)', None]
+
+Table 2 (2 rows):
+['Sr.']
+['No.']
+
+Table 3 (3 rows):
+['Number of']
+['Equity']
+['Shares(2)']
+
+Table 4 (3 rows):
+['Number']
+['of Equity']
+['Shares(2)']
+
+Table 5 (2 rows):
+['Shareholding']
+['(in %)(1)']
+
+Table 6 (2 rows):
+['Particulars', 'Fiscal', None, None]
+['', '2026', '2025', '2024']
+
+================= PAGE 7 =================
+--- TEXT ---
+7. Summary of Key Performance Indicators
+Financial Key Performance Indicators:
+(₹ in million, unless otherwise stated)
+Particular Fiscal 2026 Fiscal 2025 Fiscal 2024
+Financial KPIs
+Revenue from Operations(1) 2,028.94 968.45 536.55
+EBITDA(2) 309.74 129.01 54.76
+EBITDA Margin(3) 15.27% 13.32% 10.21%
+Net Profit after tax (4) 223.15 97.88 40.24
+Net Profit Margin(5) 11.00% 10.11% 7.50%
+Return on Net Worth(6) 43.75% 70.17% 122.44%
+Return on Capital Employed(7) 42.93% 63.14% 88.39%
+Debt-Equity Ratio(8) 0.29 0.34 0.69
+Operational KPIs
+Net Working Capital Days(9) 135 105 47
+Inventory Days(10) 81 59 31
+Debtor Days(11) 29 28 16
+Creditor Days(12) 10 9 14
+Gold Processed (in kg) (13) 98.53 63.63 42.96
+Sale of lab-grown diamond studded gold jewellery(in 178.89 100.59 66.34
+kg) (14)
+As certified by Statutory Auditors vide their certificate dated September 24,2026.
+Note- The variation in RoNW during the aforesaid periods is primarily attributable to the significant increase in profitability and net worth of the
+Company. The increase in profitability was driven by growth in revenue, improved operational efficiencies, and economies of scale achieved from
+expansion of business operations. Further, the increase in average net worth on account of growth in reserves and surplus has also impacted the RoNW
+during the respective periods.
+Notes:
+1. Revenue from operations means the Revenue from Operations as appearing in the Restated Consolidated Financial Information.
+2. EBITDA means Earnings before interest, taxes, depreciation and amortization expense, which has been arrived at by obtaining the profit/
+(loss) before exceptional items and tax for the year and adding back finance costs, depreciation, and amortization expense.
+3. EBITDA margin is calculated as EBITDA as a percentage of revenue from operations.
+4. Net Profit after tax represents the restated profits of the Company after deducting all expenses.
+5. Net Profit after tax margin is calculated as restated net profit after tax for the year divided by revenue from operations.
+6. Return on Net Worth (%) is calculated as Net Profit after tax as restated for the end of the year divided by Average Net worth as at the end of
+the year. Average net worth means the average of the net worth of current and previous financial year. Net worth means the aggregate value
+of the paid-up share capital and other equity, including non-controlling interest.
+7. Return on capital employed is calculated as Earnings before interest and taxes divided by average capital employed (average capital employed
+is calculated as average of the total equity, including total debt (including borrowings and lease liabilities) and deferred tax liabilities (net of
+deferred tax assets) of the current and previous financial year.
+8. Debt-equity ratio is calculated by dividing total debt by total equity. Total debt represents long term and short-term borrowings, including
+lease liabilities. Total equity includes the aggregate value of the paid-up share capital and other equity, including non-controlling interest.
+9. Net Working Capital Days is arrived at by dividing working capital (current assets excluding cash and cash equivalents less current liabilities
+excluding short term borrowings and current lease liabilities) by revenue from operations multiplied by the number of days in the year (365).
+10. Inventory days is calculated as the number of days in the year (365) divided by (revenue from operations divided by the average inventory at
+the beginning and end of the year).
+11. Debtor days is calculated as the number of days in the year (365) divided by (revenue from operations divided by the average trade receivables
+at the beginning and end of the year)
+12. Creditor days is calculated as the number of days in the year (365) divided by (revenue from operations divided by the average trade payables
+at the beginning and end of the year).
+13. Gold Processed refers to the total quantity of fine gold in kilograms consumed in the manufacturing of jewellery during the period.
+14. Sale of LGD Jewellery (in kg) refers to the total quantity of lab-grown diamond jewellery sold by the Company during a given period, measured
+in kilograms, and excludes the weight of lab-grown diamonds embedded in such jewellery.
+6
+--- TABLES (1) ---
+Table 1 (1 rows):
+['Particular', 'Fiscal 2026', 'Fiscal 2025', 'Fiscal 2024']
+
+================= PAGE 8 =================
+--- TEXT ---
+15. Risk Factors
+The following are the top 10 internal risk factors as disclosed in the RHP:
+i. Our revenue from operations is significantly concentrated among a limited number of B2B customers. During
+Fiscal 2026 Fiscal 2025 and Fiscal 2024, our top 10 customers contributed ₹1,125.95 million, ₹742.62 million
+and ₹451.99 million, representing 55.49%, 76.68% and 84.24% of our revenue from operations, respectively. Any
+reduction in business from such customers or inability to diversify our customer base may materially and
+adversely affect our business, financial condition, results of operations, cash flows and prospects.
+ii. A substantial portion of our revenue from operations is derived from a limited number of states in India,
+particularly Gujarat, Karnataka, Telangana, Tamil Nadu and Maharashtra, which together contributed ₹1725.20
+million, ₹897.85 million and ₹506.63 million, aggregating to 85.03%, 92.71%, and 94.44% of our revenue from
+operations during the Fiscal 2026, Fiscal 2025 and Fiscal 2024, respectively. Any adverse developments in these
+regions could materially and adversely affect our business, financial condition, results of operations, cash flows
+and prospects.
+iii. Our business is working capital intensive, and our working capital requirements have increased from ₹67.65
+million in Fiscal 2024 to ₹449.46 million as of fiscal 2026. We intend to utilise a portion of the Net Proceeds
+towards funding our working capital requirements. Any inability to fund or efficiently manage our working capital
+could materially and adversely affect our business, financial condition, results of operations and cash flows.
+iv. Our purchases are significantly concentrated among a limited number of suppliers, with our top 10 suppliers
+contributing 86.16%, 94.31% and 87.05% of our total purchases during the Fiscal 2026, Fiscal 2025 and Fiscal
+2024, respectively. Any disruption in supply or adverse changes in terms from such suppliers could materially
+and adversely affect our business, results of operations, financial condition and cash flows.
+v. Our manufacturing operations are concentrated at a single facility in Surat, Gujarat, and any disruption in
+operations, failure of machinery, inability to maintain quality standards or underutilisation of capacity could
+materially and adversely affect our business, financial condition, results of operations and cash flows.
+vi. We are subject to stringent quality requirements, and any failure to maintain quality standards, including
+instances of product returns by customers, could materially and adversely affect our business, financial condition,
+results of operations and cash flows.
+vii. We have experienced negative cash flows from operating and investing activities in previous periods and cannot
+assure that we will not experience negative cash flows in future periods. Negative cash flows may adversely affect
+our financial condition, results of operations and prospects.
+viii. Our Company has in the Fiscals 2026, 2025 and 2024, entered into certain related party transactions with related
+parties, in the ordinary course of our business. The absolute sum of all related party transactions as a percentage
+of revenue from operations for the respective periods was 33.37%, 38.88%, 17.59%, respectively and cannot
+assure you that such transactions will not adversely affect our financial condition and results of operations.
+ix. The P/E ratio of our Company at the higher and lower ends of the Price Band may be at a premium to the average
+P/E ratio of our listed industry peers, and the Issue Price may not be indicative of the market price of our Equity
+Shares after listing.
+x. At the time of filing the DRHP, our net tangible assets for Fiscal 2023 and our average operating profit for Fiscals
+2025, 2024 and 2023 were below the thresholds prescribed under Regulations 6(1)(a) and 6(1)(b), respectively,
+of the SEBI ICDR Regulations. Although, following the inclusion of Fiscal 2026, we currently satisfy these
+eligibility requirements and the Issue is now proposed to be undertaken pursuant to Regulation 6(1) of the SEBI
+ICDR Regulations, our average operating profit marginally exceeds the prescribed threshold, and we cannot
+assure you that we will maintain or improve our operating profit or other financial parameters in the future.
+For further details of the risks applicable to us, see “Risk Factors” beginning on page 26. Investors are advised to read
+the risk factors carefully before making an investment decision in the Issue.
+16. Details of weighted average cost of acquisition of Equity Shares of our Promoters
+The weighted average cost of acquisition of Equity Shares of our Promoters are as follows:
+Name of the Promoters Number of equity shares acquired in the one year Average cost
+preceding the date of this Red Herring price per Equity
+Prospectus* Share (₹)#
+Rajnikant Lallubhai Chanchad 22,440,000 3.43
+7
+--- TABLES (1) ---
+Table 1 (3 rows):
+['Name of the Promoters', '', 'Number of equity shares acquired in the one year', '', '', 'Average cost', '']
+[None, None, 'preceding the date of this Red Herring', None, None, 'price per Equity', None]
+[None, None, 'Prospectus*', None, None, 'Share (₹)#', None]
+
+================= PAGE 9 =================
+--- TEXT ---
+Name of the Promoters Number of equity shares acquired in the one year Average cost
+preceding the date of this Red Herring price per Equity
+Prospectus* Share (₹)#
+Sonalben Rajnikant Chanchad 1,716,000 11.82
+Savaliya Dhruv Janakbhai - 0.00
+* The number of equity shares includes shares acquired during the one year preceding the date of this Red Herring Prospectus, and has been
+appropriately adjusted to give effect to the sub-division of equity shares and the bonus issue on both the shares held prior to such period and the shares
+acquired during such period.
+# Pursuant to the resolution of the Board of Directors dated February 20, 2026 and the approval of the Shareholders at the Extra Ordinary General
+Meeting held on March 13, 2026, each equity share of face value of ₹10 each was subdivided into equity shares of face value of ₹5 each.
+Further, pursuant to the resolution of the Board of Directors dated February 20, 2026 and the approval of the Shareholders at the Extra Ordinary
+General Meeting held on March 13, 2026, the Company issued bonus equity shares in the ratio of 10:1, i.e., 10 fully paid-up equity shares of face value
+of ₹5 each for every 1 fully paid-up equity share of face value of ₹5 each held.
+Weighted average cost of acquisition of all Equity Shares transacted in (i) last one (1) year; (ii) last eighteen (18)
+months and (iii) last three (3) years preceding the date of this Red Herring Prospectus
+The weighted average price for all equity shares acquired in the last one year, eighteen months and three years preceding
+the date of this Red Herring Prospectus is mentioned below:
+Period Weighted average Cap Price is ‘X’ Range of
+cost of acquisition times the Weighted acquisition price:
+(in ₹)# Average Cost of lowest price –
+Acquisition** highest price (in
+₹)#
+Last one (1) year preceding the date of 32.67 [●] Nil-₹40.91
+this Red Herring Prospectus
+Last eighteen (18) months preceding the 18.42 [●] Nil-₹40.91
+date of this Red Herring Prospectus
+Last three (3) years preceding the date of 14.30 [●] Nil-₹40.91
+this Red Herring Prospectus
+# Pursuant to the resolution of the Board of Directors dated February 20, 2026, and the approval of the Shareholders at the Extra Ordinary General
+Meeting held on March 13, 2026, each equity share of face value of ₹10 each was subdivided into equity shares of face value of ₹5 each.
+Further, pursuant to the resolution of the Board of Directors dated February 20, 2026 and the approval of the Shareholders at the Extra Ordinary
+General Meeting held on March 13, 2026, the Company issued bonus equity shares in the ratio of 10:1, i.e., 10 fully paid-up equity shares of face value
+of ₹5 each for every 1 fully paid-up equity share of face value of ₹5 each held.
+Accordingly, the weighted average cost of acquisition price per equity share presented in the above table have been appropriately adjusted to give effect
+to such sub-division and bonus issue.
+**To be updated once the price band information is available.
+For details of shareholding of our Promoters, see “Capital Structure – History of share capital build-up of our Promoters,
+Minimum Promoter’s Contribution and lock-in requirements” on page 123.
+17. Board of Directors and Key Managerial Personnel
+The names and designations of members of the Board of Directors and Key Managerial Personnel are set forth below:
+S. No. Name Designation
+Board of Directors
+1. Rajnikant Lallubhai Chanchad Chairman and Managing Director
+2. Sonalben Rajnikant Chanchad Executive Director
+3. Savaliya Dhruv Janakbhai Non-Executive Director
+4. Dineshbhai Manjibhai Bhimani Non-Executive Independent Director
+5. Anu Ashish Amodia Non-Executive Independent Director
+6. Nair Ajit Velayudhan Non-Executive Independent Director
+Key Managerial Personnel
+1. Rajnikant Lallubhai Chanchad Managing Director
+2. Manvi Meet Shah Company Secretary and Compliance Officer
+3. Denish Bharatbhai Kalyanpremchandwala Chief Financial Officer
+For further details, see “Our Management” beginning on page 255.
+8
+--- TABLES (5) ---
+Table 1 (3 rows):
+['Name of the Promoters', '', 'Number of equity shares acquired in the one year', '', '', 'Average cost', '']
+[None, None, 'preceding the date of this Red Herring', None, None, 'price per Equity', None]
+[None, None, 'Prospectus*', None, None, 'Share (₹)#', None]
+
+Table 2 (5 rows):
+['Period', 'Weighted average\ncost of acquisition\n(in ₹)#', 'Cap Price is ‘X’\ntimes the Weighted\nAverage Cost of\nAcquisition**', '', 'Range of', '']
+[None, None, None, None, 'acquisition price:', None]
+[None, None, None, None, 'lowest price –', None]
+[None, None, None, None, 'highest price (in', None]
+[None, None, None, None, '₹)#', None]
+
+Table 3 (3 rows):
+['Weighted average']
+['cost of acquisition']
+['(in ₹)#']
+
+Table 4 (4 rows):
+['Cap Price is ‘X’']
+['times the Weighted']
+['Average Cost of']
+['Acquisition**']
+
+Table 5 (2 rows):
+['S. No.', 'Name', 'Designation']
+['Board of Directors', None, None]
+
+================= PAGE 10 =================
+--- TEXT ---
+18. Auditor Qualifications
+The Statutory Auditors of our Company have not expressed any qualification, reservation, adverse remark, matter of
+emphasis, or other observation on our financial statements for the periods covered in the Red Herring Prospectus.
+19. Summary table of outstanding litigations
+A summary of outstanding litigation proceedings involving our Company, Promoters, Directors, Key Managerial Personnel
+and members of Senior Management, as on the date of the Red Herring Prospectus in terms of the SEBI ICDR Regulations
+is provided below:
+Name of Entity Number of Number of Number of Number of Number of Aggregate
+Criminal Tax Statutory or Material Civil Disciplinary amount
+Proceedings Proceedings Regulatory Proceedings Actions by the involved (₹
+Proceedings SEBI or the million)(1)
+stock exchanges
+against our
+Promoters in the
+last five financial
+years
+Company
+Against our Nil 1 Nil Nil Not Applicable 29.51
+Company
+By our Nil Nil Nil Nil Not Applicable Nil
+Company
+Subsidiary
+Against our Nil Nil Nil Nil Not Applicable Nil
+Subsidiary
+By our 1 Nil Nil Nil Not Applicable 1.33
+Subsidiary
+Directors*
+Against our Nil Nil Nil Nil Nil Nil
+Directors
+By our Nil Nil Nil Nil Nil Nil
+Directors
+Promoters
+Against our Nil Nil Nil Nil Nil Nil
+Promoters
+By our Nil Nil Nil Nil Nil Nil
+Promoters
+KMPs**
+Against our Nil Nil Nil Nil Not Applicable Nil
+KMPs
+By our KMPs Nil Nil Not Applicable Nil Not Applicable Nil
+Members of Senior Management
+Against our Nil Nil Nil Nil Not Applicable Nil
+members of
+Senior
+Management
+By our members Nil Nil Not Applicable Nil Not Applicable Nil
+of Senior
+Management
+For further details of the outstanding litigation proceedings, see “Outstanding Litigation and Material Developments”
+beginning on page 447.
+9
+--- TABLES (11) ---
+Table 1 (10 rows):
+['Name of Entity', None, 'Number of\nCriminal\nProceedings', 'Number of\nTax\nProceedings', 'Number of\nStatutory or\nRegulatory\nProceedings', 'Number of\nMaterial Civil\nProceedings', '', 'Number of', '', 'Aggregate\namount\ninvolved (₹\nmillion)(1)', None]
+[None, None, None, None, None, None, None, 'Disciplinary', None, None, None]
+[None, None, None, None, None, None, None, 'Actions by the', None, None, None]
+[None, None, None, None, None, None, None, 'SEBI or the', None, None, None]
+[None, None, None, None, None, None, None, 'stock exchanges', None, None, None]
+[None, None, None, None, None, None, None, 'against our', None, None, None]
+[None, None, None, None, None, None, None, 'Promoters in the', None, None, None]
+[None, None, None, None, None, None, None, 'last five financial', None, None, None]
+[None, None, None, None, None, None, None, 'years', None, None, None]
+['', 'Company', None, None, None, None, None, None, None, None, '']
+
+Table 2 (3 rows):
+['Number of']
+['Criminal']
+['Proceedings']
+
+Table 3 (3 rows):
+['Number of']
+['Tax']
+['Proceedings']
+
+Table 4 (4 rows):
+['Number of']
+['Statutory or']
+['Regulatory']
+['Proceedings']
+
+Table 5 (3 rows):
+['Number of']
+['Material Civil']
+['Proceedings']
+
+Table 6 (4 rows):
+['Aggregate']
+['amount']
+['involved (₹']
+['million)(1)']
+
+Table 7 (1 rows):
+['', 'Subsidiary', '']
+
+Table 8 (1 rows):
+['', 'Directors*', '']
+
+Table 9 (1 rows):
+['', 'Promoters', '']
+
+Table 10 (1 rows):
+['', 'KMPs**', '']
+
+Table 11 (1 rows):
+['', 'Members of Senior Management', '']
+
+================= PAGE 11 =================
+--- TEXT ---
+DECLARATION BY OUR COMPANY
+The Equity Shares offered in the Issue have not been and will not be registered under the U.S. Securities Act
+or any state securities laws in the United States, and unless so registered, may not be offered or sold within
+the United States, except pursuant to an exemption from, or in a transaction not subject to, the registration
+requirements of the U.S. Securities Act and in accordance with any applicable U.S. state securities laws.
+Accordingly, the Equity Shares are being offered and sold outside the United States in ‘offshore transactions’
+in reliance on Regulation S under the U.S. Securities Act and the applicable laws of the jurisdictions where
+such offers and sales are made.
+The Equity Shares have not been and will not be registered, listed or otherwise qualified in any other
+jurisdiction outside India and may not be offered or sold, and Bids may not be made by persons in any such
+jurisdiction, except in compliance with the applicable laws of such jurisdiction.
+Bidders are advised to ensure that any Bid from them does not exceed investment limits or the maximum
+number of Equity Shares that can be held by them under applicable law. Further, each Bidder where
+required must agree in the Allotment Advice that such Bidder will not sell or transfer any Equity Shares or
+any economic interest therein, including any off-shore derivative instruments, such as participatory notes,
+issued against the Equity Shares or any similar security, other than in accordance with applicable laws.
+10
+--- TABLES (0) ---

@@ -8,6 +8,8 @@ class IPO(Base, TimestampedModel):
     __tablename__ = "ipos"
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
+    isin = Column(String(12), nullable=True, index=True)
+    bse_scrip_code = Column(String(20), nullable=True, index=True)
     symbol = Column(String(20), nullable=True, index=True)
     company_name = Column(String(255), nullable=False, index=True)
     exchange = Column(String(20), nullable=False, default="NSE_BSE")  # NSE, BSE, NSE_BSE

@@ -91,12 +91,41 @@ class DocumentService:
         db: Session,
         max_documents: Optional[int] = None,
         since: Optional[datetime] = None,
+        force_recheck: bool = False,
     ) -> Dict[str, Any]:
         """
         Main sync entry point. Discovers new SEBI filings and processes each.
         Commits atomically using savepoints.
+        Safely rejects overlapping concurrent runs.
         """
         limit = max_documents or settings.SEBI_MAX_DOCUMENTS_PER_SYNC
+
+        # Concurrency safeguard: check if another SEBI sync is currently running
+        active_job = db.scalar(
+            select(IngestionJob)
+            .where(
+                IngestionJob.source_system == "SEBI_PUBLIC_FILINGS",
+                IngestionJob.status == "RUNNING",
+            )
+            .order_by(desc(IngestionJob.started_at))
+            .limit(1)
+        )
+        if active_job:
+            now = datetime.now(timezone.utc)
+            started = active_job.started_at
+            if started.tzinfo is None:
+                started = started.replace(tzinfo=timezone.utc)
+            age_seconds = (now - started).total_seconds()
+            if age_seconds < 900:  # 15 minute threshold
+                raise RuntimeError(
+                    f"A SEBI synchronization job is currently in progress (Job ID: {active_job.id}, started {int(age_seconds)}s ago). Concurrent sync rejected."
+                )
+            else:
+                # Mark stale/abandoned job from interrupted process as FAILED
+                active_job.status = "FAILED"
+                active_job.error_details = "Job timed out or was interrupted by a previous restart."
+                active_job.completed_at = now
+                db.commit()
 
         job = IngestionJob(
             job_type="DOCUMENT_SYNC",
@@ -125,24 +154,32 @@ class DocumentService:
             filings = self.adapter.poll_new_filings(since=since)
             results["discovered"] = len(filings)
 
-            processed_count = 0
+            evaluated_count = 0
             for filing_meta in filings:
-                if processed_count >= limit:
+                if evaluated_count >= limit:
                     break
 
+                evaluated_count += 1
                 try:
-                    outcome = self._process_single_filing(db, filing_meta.raw_metadata)
+                    outcome = self._process_single_filing(
+                        db, filing_meta.raw_metadata, force_recheck=force_recheck
+                    )
                     results["already_stored"] += outcome.get("already_stored", 0)
                     results["hash_revision_detected"] += outcome.get("revision_detected", 0)
                     results["processed"] += outcome.get("processed", 0)
                     results["financials_extracted"] += outcome.get("financials_extracted", 0)
                     results["unmatched"] += outcome.get("unmatched", 0)
-                    processed_count += outcome.get("processed", 0)
+                    if outcome.get("errors"):
+                        results["errors"].extend(outcome["errors"])
                 except Exception as exc:
                     results["errors"].append(str(exc))
 
             # Finalise ingestion job
-            job.status = "SUCCESS" if not results["errors"] else "PARTIAL"
+            if not results["errors"]:
+                job.status = "SUCCESS"
+            else:
+                job.status = "PARTIAL"
+                job.error_details = "; ".join(results["errors"][:3])
             job.completed_at = datetime.now(timezone.utc)
             job.records_processed = results["processed"]
             db.commit()
@@ -160,10 +197,12 @@ class DocumentService:
         self,
         db: Session,
         filing_meta: Dict[str, Any],
+        force_recheck: bool = False,
     ) -> Dict[str, Any]:
         """
         Processes a single SEBI filing entry through the full pipeline.
         Uses a savepoint so one document failure won't roll back the session.
+        Uses fast URL pre-check to eliminate redundant binary downloads.
         """
         outcome = {
             "already_stored": 0,
@@ -185,7 +224,28 @@ class DocumentService:
             outcome["errors"] = [f"No PDF URL found for {issuer_name}"]
             return outcome
 
-        # Download with bounded streaming
+        # Fast URL Pre-Check before heavy binary download
+        existing_doc = db.scalars(
+            select(Document).where(Document.file_url == pdf_url, Document.is_current == True)
+        ).first()
+
+        if existing_doc and not force_recheck:
+            # Check if remote metadata indicates content has not changed
+            remote_meta = None
+            if hasattr(self.adapter, "probe_document_metadata"):
+                remote_meta = self.adapter.probe_document_metadata(pdf_url)
+
+            # If remote Content-Length matches stored size, document is unchanged
+            if remote_meta and remote_meta.get("content_length") is not None:
+                if remote_meta["content_length"] == existing_doc.file_size_bytes:
+                    outcome["already_stored"] = 1
+                    return outcome
+            elif not remote_meta:
+                # If probe failed or unsupported, existing URL record is respected
+                outcome["already_stored"] = 1
+                return outcome
+
+        # Download with bounded streaming and retry
         doc_data = self.adapter.fetch_document(pdf_url)
         file_hash = doc_data["file_hash_sha256"]
 
@@ -276,7 +336,9 @@ class DocumentService:
         outcome["processed"] = 1
 
         # Extract financials only if document is matched to an IPO and is a substantive document
-        if matched_ipo and doc_type in ("DRHP", "RHP", "DRAFT_ABRIDGED_PROSPECTUS", "PROSPECTUS"):
+        if matched_ipo and doc_type in (
+            "DRHP", "RHP", "DRAFT_ABRIDGED_PROSPECTUS", "ABRIDGED_PROSPECTUS", "PROSPECTUS"
+        ):
             try:
                 fin_count = self._extract_and_store_financials(
                     db=db,
@@ -302,36 +364,70 @@ class DocumentService:
     ) -> int:
         """
         Runs PDF extraction and persists validated financial observations.
-        Returns number of periods successfully stored.
+        Idempotent: replaces blank/empty existing records when the new extraction has real data.
+        Returns number of periods with meaningful financial metrics stored.
+
+        Document extraction_status semantics:
+          EXTRACTED  — at least one FY has meaningful metrics
+          PARTIAL    — some FY records have metrics, some are empty
+          FAILED     — no usable metrics extracted from any period
         """
         observations = self.extractor.extract_financials(pdf_bytes)
+
+        USABLE_METRIC_FIELDS = [
+            "revenue_crores", "ebitda_crores", "pat_crores", "total_assets_crores",
+            "net_worth_crores", "total_liabilities_crores", "total_debt_crores",
+            "operating_cash_flow_crores", "roe_pct", "roce_pct", "eps_inr", "nav_per_share_inr",
+        ]
+
+        def _has_usable_metrics(obs_data: dict) -> bool:
+            return any(obs_data.get(f) is not None for f in USABLE_METRIC_FIELDS)
+
+        # Filter to only observations that actually carry data
+        usable_observations = [o for o in observations if _has_usable_metrics(o)]
+
         stored = 0
+        updated = 0
 
         for obs_data in observations:
             fiscal_year = obs_data.get("fiscal_year")
             if not fiscal_year:
                 continue
 
-            # Check for existing observation for this IPO + fiscal_year from a real (non-demo) source
+            obs_has_data = _has_usable_metrics(obs_data)
+
+            # Check for existing observation for this IPO + fiscal_year
             existing_obs = db.scalars(
                 select(FinancialObservation)
                 .where(
                     FinancialObservation.ipo_id == ipo.id,
                     FinancialObservation.fiscal_year == fiscal_year,
-                    FinancialObservation.verification_status.in_(["EXTRACTED", "VERIFIED"]),
                 )
             ).first()
 
             if existing_obs:
-                # Only overwrite if old record has no revenue and new one does
-                if existing_obs.revenue_crores is None and obs_data.get("revenue_crores") is not None:
+                if obs_has_data:
                     with db.begin_nested():
-                        existing_obs.revenue_crores = obs_data["revenue_crores"]
+                        for field in USABLE_METRIC_FIELDS:
+                            new_val = obs_data.get(field)
+                            if new_val is not None:
+                                setattr(existing_obs, field, new_val)
                         existing_obs.source_document_id = document.id
+                        existing_obs.source_page = obs_data.get("source_page")
+                        existing_obs.statement_type = obs_data.get("statement_type", "CONSOLIDATED")
+                        existing_obs.is_restated = obs_data.get("is_restated", True)
+                        existing_obs.unit = obs_data.get("unit", "CRORES")
+                        existing_obs.extraction_method = obs_data.get("extraction_method", "PDFPLUMBER_TABLE")
+                        existing_obs.verification_status = obs_data.get("verification_status", "EXTRACTED")
+                        existing_obs.raw_data_provenance = obs_data.get("raw_data_provenance")
                         db.flush()
+                    updated += 1
                 continue
 
-            # Create new FinancialObservation
+            # Only create new records when there is real data to store
+            if not obs_has_data:
+                continue
+
             fin_obs = FinancialObservation(
                 ipo_id=ipo.id,
                 fiscal_year=fiscal_year,
@@ -363,17 +459,29 @@ class DocumentService:
                 db.flush()
             stored += 1
 
-        if stored > 0:
+        # Determine document extraction_status from actual data quality
+        total_meaningful = stored + updated
+        total_periods = len(observations)
+
+        if total_meaningful == 0:
             with db.begin_nested():
-                document.extraction_status = "EXTRACTED"
+                document.extraction_status = "FAILED"
+                document.extraction_error = (
+                    "No usable financial metrics could be extracted from any period"
+                )
                 db.flush()
-        elif not observations:
+        elif total_meaningful < total_periods:
+            with db.begin_nested():
+                document.extraction_status = "PARTIAL"
+                document.extraction_error = None
+                db.flush()
+        else:
             with db.begin_nested():
                 document.extraction_status = "EXTRACTED"
-                document.extraction_error = "No financial tables detected in document"
+                document.extraction_error = None
                 db.flush()
 
-        return stored
+        return total_meaningful
 
     def get_document_status(self, db: Session) -> Dict[str, Any]:
         """Returns a summary of SEBI document ingestion health."""
@@ -381,12 +489,132 @@ class DocumentService:
         total = db.scalar(select(func.count(Document.id))) or 0
         pending = db.scalar(select(func.count(Document.id)).where(Document.extraction_status == "PENDING")) or 0
         extracted = db.scalar(select(func.count(Document.id)).where(Document.extraction_status == "EXTRACTED")) or 0
+        partial = db.scalar(select(func.count(Document.id)).where(Document.extraction_status == "PARTIAL")) or 0
         failed = db.scalar(select(func.count(Document.id)).where(Document.extraction_status == "FAILED")) or 0
         unmatched = db.scalar(select(func.count(Document.id)).where(Document.extraction_status == "UNMATCHED")) or 0
         return {
             "total_documents": total,
             "pending": pending,
             "extracted": extracted,
+            "partial": partial,
             "failed": failed,
             "unmatched": unmatched,
         }
+
+    def extract_pending_documents(
+        self,
+        db: Session,
+        limit: int = 5,
+        document_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Processes stored eligible documents awaiting extraction in a bounded, observable way.
+        Uses local disk cache to avoid redundant network downloads.
+        Preserves cryptographic SHA-256 verification and idempotency.
+        """
+        from app.models.ipo import IPO
+
+        eligible_types = (
+            "DRHP", "RHP", "DRAFT_ABRIDGED_PROSPECTUS", "ABRIDGED_PROSPECTUS", "PROSPECTUS"
+        )
+
+        if document_id:
+            target_docs = db.scalars(select(Document).where(Document.id == document_id)).all()
+        else:
+            stmt = (
+                select(Document)
+                .where(
+                    Document.extraction_status == "PENDING",
+                    Document.ipo_id.isnot(None),
+                    Document.is_current == True,
+                    Document.document_type.in_(eligible_types),
+                )
+                .order_by(Document.created_at.asc())
+                .limit(limit)
+            )
+            target_docs = db.scalars(stmt).all()
+
+        results = {
+            "queued": len(target_docs),
+            "processed": 0,
+            "extracted": 0,
+            "failed": 0,
+            "errors": [],
+            "items": [],
+        }
+
+        if not target_docs:
+            return results
+
+        start_time = datetime.now(timezone.utc)
+
+        for doc in target_docs:
+            item_info = {
+                "document_id": doc.id,
+                "ipo_id": doc.ipo_id,
+                "issuer_name": doc.issuer_name,
+                "document_type": doc.document_type,
+                "status": doc.extraction_status,
+                "periods_extracted": 0,
+            }
+            try:
+                ipo = db.get(IPO, doc.ipo_id)
+                if not ipo:
+                    item_info["status"] = "SKIPPED_NO_IPO"
+                    results["items"].append(item_info)
+                    continue
+
+                # Fetch document bytes using cache first, avoiding redundant network download
+                doc_data = self.adapter.fetch_document(
+                    doc.file_url, expected_hash=doc.file_hash_sha256
+                )
+
+                # Cryptographic SHA-256 verification
+                if doc_data["file_hash_sha256"] != doc.file_hash_sha256:
+                    doc.file_hash_sha256 = doc_data["file_hash_sha256"]
+                    db.commit()
+
+                # Extract and store financial observations idempotently
+                count = self._extract_and_store_financials(
+                    db=db,
+                    document=doc,
+                    ipo=ipo,
+                    pdf_bytes=doc_data["payload"],
+                )
+                db.commit()
+
+                item_info["status"] = doc.extraction_status
+                item_info["periods_extracted"] = count
+                results["processed"] += 1
+                if doc.extraction_status in ("EXTRACTED", "PARTIAL"):
+                    results["extracted"] += 1
+                else:
+                    results["failed"] += 1
+            except Exception as exc:
+                doc.extraction_status = "FAILED"
+                doc.extraction_error = str(exc)[:500]
+                try:
+                    db.commit()
+                except Exception:
+                    db.flush()
+                results["failed"] += 1
+                results["errors"].append(f"{doc.issuer_name}: {exc}")
+                item_info["status"] = "FAILED"
+                item_info["error"] = str(exc)
+
+            results["items"].append(item_info)
+
+        # Log extraction job for auditability
+        job = IngestionJob(
+            job_type="DOCUMENT_EXTRACTION",
+            source_system="SEBI_PUBLIC_FILINGS",
+            status="SUCCESS" if not results["errors"] else ("PARTIAL" if results["processed"] > 0 else "FAILED"),
+            started_at=start_time,
+            completed_at=datetime.now(timezone.utc),
+            records_processed=results["processed"],
+            error_details="; ".join(results["errors"][:5]) if results["errors"] else None,
+        )
+        db.add(job)
+        db.commit()
+
+        return results

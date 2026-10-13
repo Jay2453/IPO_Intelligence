@@ -10,6 +10,8 @@ from app.schemas.predictions import PredictionResponse
 
 
 class IPOBase(BaseModel):
+    isin: Optional[str] = None
+    bse_scrip_code: Optional[str] = None
     symbol: Optional[str] = None
     company_name: str
     exchange: str = "NSE_BSE"

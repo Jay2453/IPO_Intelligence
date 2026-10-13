@@ -79,23 +79,68 @@ def trigger_sebi_sync(
         le=50,
         description="Maximum number of new documents to discover and process",
     ),
+    force_recheck: bool = Query(
+        False,
+        description="Bypass URL metadata cache and re-probe/re-verify document content",
+    ),
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
     db: Session = Depends(get_db),
 ):
     """
     Triggers a manual SEBI public issue discovery and document synchronization.
     Downloads PDFs, extracts financials, and stores provenance.
+    Safely rejects concurrent runs if a sync is already active.
     """
     _require_api_key(x_api_key)
 
     service = DocumentService()
     try:
-        result = service.sync_sebi_documents(db=db, max_documents=max_documents)
+        result = service.sync_sebi_documents(
+            db=db,
+            max_documents=max_documents,
+            force_recheck=force_recheck,
+        )
         return result
+    except RuntimeError as exc:
+        if "currently in progress" in str(exc):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(exc),
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        )
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"SEBI sync failed: {str(exc)}",
+        )
+
+
+@router.post("/sebi/extract-pending", tags=["SEBI"])
+def trigger_extract_pending(
+    limit: int = Query(
+        5,
+        ge=1,
+        le=20,
+        description="Maximum number of stored pending documents to extract in this batch",
+    ),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+    db: Session = Depends(get_db),
+):
+    """
+    Processes a bounded batch of stored eligible documents awaiting extraction.
+    Uses local disk cache to avoid redundant downloads.
+    """
+    _require_api_key(x_api_key)
+    service = DocumentService()
+    try:
+        return service.extract_pending_documents(db=db, limit=limit)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Extraction batch failed: {str(exc)}",
         )
 
 
@@ -168,14 +213,14 @@ def reprocess_document_extraction(
     if not ipo:
         raise HTTPException(status_code=404, detail="Associated IPO not found.")
 
-    # Re-download the document
+    # Fetch document bytes using cache first to avoid redundant network download
     adapter = SebiPublicIssuesAdapter()
     try:
-        doc_data = adapter.fetch_document(doc.file_url)
+        doc_data = adapter.fetch_document(doc.file_url, expected_hash=doc.file_hash_sha256)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Could not re-download document: {exc}",
+            detail=f"Could not load document: {exc}",
         )
 
     # Validate hash integrity

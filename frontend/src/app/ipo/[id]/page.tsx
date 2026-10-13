@@ -45,6 +45,20 @@ function IpoDetailContent({ params }: PageProps) {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'financials' | 'subscription' | 'documents' | 'predictions' | 'risks'>('overview');
 
+  const [extractingDocId, setExtractingDocId] = useState<string | null>(null);
+
+  const handleExtractDocument = async (docId: string) => {
+    try {
+      setExtractingDocId(docId);
+      await api.extractDocument(docId);
+      await loadIpoDetail();
+    } catch (err: any) {
+      alert(`Extraction failed: ${err.message}`);
+    } finally {
+      setExtractingDocId(null);
+    }
+  };
+
   useEffect(() => {
     loadIpoDetail();
   }, [ipoId]);
@@ -563,6 +577,17 @@ function IpoDetailContent({ params }: PageProps) {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0 self-start md:self-center">
+                      {doc.extraction_status === 'PENDING' && (
+                        <button
+                          onClick={() => handleExtractDocument(doc.id)}
+                          disabled={extractingDocId === doc.id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 border border-indigo-700 text-xs transition-colors disabled:opacity-50"
+                          title="Extract financial statements from this filing"
+                        >
+                          <FileText className={`w-3.5 h-3.5 ${extractingDocId === doc.id ? 'animate-spin' : ''}`} />
+                          {extractingDocId === doc.id ? 'Extracting...' : 'Extract Financials'}
+                        </button>
+                      )}
                       <a
                         href={doc.file_url}
                         target="_blank"
