@@ -1,5 +1,6 @@
 import os
 import io
+import zipfile
 from datetime import date, datetime, timezone
 from unittest.mock import patch, MagicMock
 import httpx
@@ -16,6 +17,8 @@ from app.pipeline.bhavcopy_verifier import (
     BhavcopyParseError,
     BhavcopyNotFoundError,
     compute_sha256,
+    UDIFF_TRANSITION_DATE,
+    BSE_ISIN_LEGACY_DATE,
 )
 from app.pipeline.historical_archive_parser import (
     HistoricalArchiveParser,
@@ -47,6 +50,18 @@ SYNTHETIC_BSE_BHAVCOPY = """SC_CODE,SC_NAME,SC_GROUP,SC_TYPE,OPEN,HIGH,LOW,CLOSE
 500325,RELIANCE,A,Q,2755.00,2780.00,2740.00,2770.50,2772.00,2750.00,5000,100000,27650000,,INE002A01018
 543999,SWIGGY,B,Q,390.00,420.00,385.00,412.00,410.00,350.00,12000,500000,206000000,,INE00H101014
 """
+
+SYNTHETIC_UDIFF_BHAVCOPY = """TradDt,BizDt,Sgmt,Src,FinInstrmTp,FinInstrmId,ISIN,TckrSymb,SctySrs,OpnPric,HghPric,LwPric,ClsPric,LastPric,PrvsClsgPric,TtlTradgVol
+2024-10-22,2024-10-22,CM,NSE,STK,544274,INE0V6F01027,HYUNDAI,EQ,1934.00,1970.00,1807.00,1819.60,1845.00,1960.00,28619978
+2024-10-22,2024-10-22,CM,NSE,STK,20372,INE002A01018,RELIANCE,EQ,2755.00,2780.00,2740.00,2770.50,2772.00,2750.00,1500000
+2024-10-22,2024-10-22,CM,NSE,STK,24786,INE0V6F01027,HYUNDAI,BE,1920.00,1950.00,1800.00,1810.00,1815.00,1960.00,50000
+"""
+
+SYNTHETIC_BSE_OLDER_BHAVCOPY = """SC_CODE,SC_NAME,SC_GROUP,SC_TYPE,OPEN,HIGH,LOW,CLOSE,LAST,PREVCLOSE,NO_TRADES,NO_OF_SHRS,NET_TURNOV,TDCLOINDI
+500002,ABB LTD.    ,A ,Q,1115.10,1132.95,1101.25,1127.25,1127.25,1101.60,486,4290,4815974.00,
+500325,RELIANCE IND,A ,Q,850.00,865.00,845.00,860.00,858.00,840.00,5000,100000,85000000.00,
+"""
+
 
 SYNTHETIC_NSE_ARCHIVE_JSON = """[
   {
@@ -202,6 +217,209 @@ class TestBhavcopyOutcomeVerifier:
             mock_get.return_value = mock_resp
             with pytest.raises(BhavcopyNotFoundError):
                 verifier.fetch_bhavcopy(date(2020, 1, 1), exchange="NSE", force_refresh=True)
+
+    def test_canonical_url_date_boundary_routing(self, tmp_path):
+        """Verifies date boundary routing across modern (UDiFF), legacy ZIP, and older archives."""
+        verifier = BhavcopyOutcomeVerifier(cache_dir=str(tmp_path))
+
+        # 1. NSE Boundary Routing (Transition date: 2024-07-08)
+        # On or after transition date -> modern sec_bhavdata_full
+        assert verifier.get_canonical_url(date(2024, 7, 8), exchange="NSE") == (
+            "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_08072024.csv"
+        )
+        assert verifier.get_canonical_url(date(2024, 10, 15), exchange="NSE") == (
+            "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_15102024.csv"
+        )
+        # Before transition date -> legacy CM archive zip
+        assert verifier.get_canonical_url(date(2024, 7, 7), exchange="NSE") == (
+            "https://nsearchives.nseindia.com/content/historical/EQUITIES/2024/JUL/cm07JUL2024bhav.csv.zip"
+        )
+        assert verifier.get_canonical_url(date(2018, 10, 15), exchange="NSE") == (
+            "https://nsearchives.nseindia.com/content/historical/EQUITIES/2018/OCT/cm15OCT2018bhav.csv.zip"
+        )
+
+        # 2. BSE Boundary Routing (Transition date: 2024-07-08, Legacy ISIN date: 2017-01-01)
+        # On or after transition date -> modern standardized UDiFF CSV
+        assert verifier.get_canonical_url(date(2024, 7, 8), exchange="BSE") == (
+            "https://www.bseindia.com/download/BhavCopy/Equity/BhavCopy_BSE_CM_0_0_0_20240708_F_0000.CSV"
+        )
+        assert verifier.get_canonical_url(date(2024, 10, 15), exchange="BSE") == (
+            "https://www.bseindia.com/download/BhavCopy/Equity/BhavCopy_BSE_CM_0_0_0_20241015_F_0000.CSV"
+        )
+        # Between 2017 and 2024-07-07 -> EQ_ISINCODE ZIP
+        assert verifier.get_canonical_url(date(2024, 7, 7), exchange="BSE") == (
+            "https://www.bseindia.com/download/BhavCopy/Equity/EQ_ISINCODE_070724.zip"
+        )
+        assert verifier.get_canonical_url(date(2020, 10, 15), exchange="BSE") == (
+            "https://www.bseindia.com/download/BhavCopy/Equity/EQ_ISINCODE_151020.zip"
+        )
+        # Older than 2017 -> EQ{ddMMyy}_CSV.ZIP
+        assert verifier.get_canonical_url(date(2016, 12, 31), exchange="BSE") == (
+            "https://www.bseindia.com/download/BhavCopy/Equity/EQ311216_CSV.ZIP"
+        )
+        assert verifier.get_canonical_url(date(2015, 10, 15), exchange="BSE") == (
+            "https://www.bseindia.com/download/BhavCopy/Equity/EQ151015_CSV.ZIP"
+        )
+
+    def test_candidate_urls_failover_routing(self, tmp_path):
+        """Verifies candidate URLs generation provides ordered mirrors for failover."""
+        verifier = BhavcopyOutcomeVerifier(cache_dir=str(tmp_path))
+
+        # Modern NSE provides UDiFF as secondary fallback candidate
+        nse_modern_candidates = verifier.get_candidate_urls(date(2024, 10, 15), exchange="NSE")
+        assert len(nse_modern_candidates) >= 2
+        assert "sec_bhavdata_full_15102024.csv" in nse_modern_candidates[0]
+        assert "BhavCopy_NSE_CM_0_0_0_20241015_F_0000.csv.zip" in nse_modern_candidates[1]
+
+        # Legacy BSE provides both EQ_ISINCODE and EQ..._CSV variants
+        bse_legacy_candidates = verifier.get_candidate_urls(date(2020, 10, 15), exchange="BSE")
+        assert len(bse_legacy_candidates) >= 2
+        assert any("EQ_ISINCODE" in u for u in bse_legacy_candidates)
+        assert any("EQ151020_CSV" in u for u in bse_legacy_candidates)
+
+    def test_parse_nse_udiff_bhavcopy_normalization(self, tmp_path):
+        """Verifies UDiFF column aliases normalize cleanly into internal schema for NSE."""
+        verifier = BhavcopyOutcomeVerifier(cache_dir=str(tmp_path))
+        rows = verifier.parse_bhavcopy_rows(SYNTHETIC_UDIFF_BHAVCOPY, exchange="NSE")
+        assert len(rows) == 3
+
+        hyundai = next(r for r in rows if r["symbol"] == "HYUNDAI" and r["series"] == "EQ")
+        assert hyundai["symbol"] == "HYUNDAI"
+        assert hyundai["series"] == "EQ"
+        assert hyundai["isin"] == "INE0V6F01027"
+        assert hyundai["scrip_code"] == "544274"
+        assert hyundai["open_price"] == 1934.00
+        assert hyundai["high_price"] == 1970.00
+        assert hyundai["low_price"] == 1807.00
+        assert hyundai["close_price"] == 1819.60
+        assert hyundai["prev_close"] == 1960.00
+        assert hyundai["total_traded_qty"] == 28619978
+
+    def test_parse_bse_udiff_bhavcopy_normalization(self, tmp_path):
+        """Verifies UDiFF column aliases normalize cleanly into internal schema for BSE."""
+        verifier = BhavcopyOutcomeVerifier(cache_dir=str(tmp_path))
+        rows = verifier.parse_bhavcopy_rows(SYNTHETIC_UDIFF_BHAVCOPY, exchange="BSE")
+        assert len(rows) == 3
+
+        hyundai = next(r for r in rows if r["symbol"] == "HYUNDAI" and r["series"] == "EQ")
+        assert hyundai["symbol"] == "HYUNDAI"
+        assert hyundai["scrip_code"] == "544274"
+        assert hyundai["isin"] == "INE0V6F01027"
+        assert hyundai["open_price"] == 1934.00
+        assert hyundai["close_price"] == 1819.60
+        assert hyundai["total_traded_qty"] == 28619978
+
+    def test_parse_bse_older_bhavcopy_without_isin(self, tmp_path):
+        """Verifies older 2015-2016 BSE bhavcopy without ISIN parses scrip code, names, and prices."""
+        verifier = BhavcopyOutcomeVerifier(cache_dir=str(tmp_path))
+        rows = verifier.parse_bhavcopy_rows(SYNTHETIC_BSE_OLDER_BHAVCOPY, exchange="BSE")
+        assert len(rows) == 2
+
+        abb = next(r for r in rows if r["scrip_code"] == "500002")
+        assert abb["symbol"] == "ABB LTD."
+        assert abb["isin"] is None  # ISIN not present in 2015 BSE format
+        assert abb["series"] == "A"
+        assert abb["open_price"] == 1115.10
+        assert abb["close_price"] == 1127.25
+        assert abb["prev_close"] == 1101.60
+        assert abb["total_traded_qty"] == 4290
+
+    def test_extract_csv_from_valid_zip(self, tmp_path):
+        """Verifies safe decompression and CSV extraction from in-memory ZIP payload."""
+        verifier = BhavcopyOutcomeVerifier(cache_dir=str(tmp_path))
+        csv_payload = "SYMBOL,SERIES,OPEN,HIGH,LOW,CLOSE\nFOO,EQ,10.0,12.0,9.0,11.0\n"
+
+        # Pack into ZIP archive in memory
+        zip_buf = io.BytesIO()
+        with zipfile.ZipFile(zip_buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("test_bhav.csv", csv_payload.encode("utf-8"))
+        zip_bytes = zip_buf.getvalue()
+
+        extracted = verifier._extract_csv_from_payload(zip_bytes)
+        assert extracted == csv_payload
+
+    def test_extract_csv_from_corrupt_zip_raises(self, tmp_path):
+        """Verifies corrupt ZIP payload raises BhavcopyParseError."""
+        verifier = BhavcopyOutcomeVerifier(cache_dir=str(tmp_path))
+        corrupt_zip = b"PK\x03\x04" + b"CorruptGarbageDataNotValidZip" * 10
+        with pytest.raises(BhavcopyParseError) as exc_info:
+            verifier._extract_csv_from_payload(corrupt_zip)
+        assert "Corrupt or invalid ZIP archive" in str(exc_info.value)
+
+    def test_extract_csv_from_empty_zip_raises(self, tmp_path):
+        """Verifies ZIP archive without CSV files raises BhavcopyParseError."""
+        verifier = BhavcopyOutcomeVerifier(cache_dir=str(tmp_path))
+        zip_buf = io.BytesIO()
+        with zipfile.ZipFile(zip_buf, "w") as zf:
+            zf.writestr("notes.txt", b"No CSV here!")
+        zip_bytes = zip_buf.getvalue()
+
+        with pytest.raises(BhavcopyParseError) as exc_info:
+            verifier._extract_csv_from_payload(zip_bytes)
+        assert "ZIP archive contains no CSV files" in str(exc_info.value)
+
+    def test_extract_csv_empty_payload_raises(self, tmp_path):
+        """Verifies empty or truncated payload raises BhavcopyParseError."""
+        verifier = BhavcopyOutcomeVerifier(cache_dir=str(tmp_path))
+        with pytest.raises(BhavcopyParseError):
+            verifier._extract_csv_from_payload(b"")
+        with pytest.raises(BhavcopyParseError):
+            verifier._extract_csv_from_payload(b"short")
+
+    def test_bhavcopy_missing_columns_raises(self, tmp_path):
+        """Verifies missing required columns raise descriptive parse errors for both exchanges."""
+        verifier = BhavcopyOutcomeVerifier(cache_dir=str(tmp_path))
+        # Missing OPEN / CLOSE on NSE
+        with pytest.raises(BhavcopyParseError) as exc_nse:
+            verifier.parse_bhavcopy_rows("SYMBOL,SERIES,FOO,BAR\nRELIANCE,EQ,1,2", exchange="NSE")
+        assert "missing OPEN or CLOSE columns" in str(exc_nse.value)
+
+        # Missing SC_CODE on BSE
+        with pytest.raises(BhavcopyParseError) as exc_bse:
+            verifier.parse_bhavcopy_rows("FOO,BAR,BAZ\n1,2,3", exchange="BSE")
+        assert "missing required columns" in str(exc_bse.value)
+
+    def test_reconcile_duplicate_symbol_volume_tie_breaker(self, tmp_path):
+        """When multiple rows share the same series, the more liquid/higher volume line is matched."""
+        verifier = BhavcopyOutcomeVerifier(cache_dir=str(tmp_path))
+        synthetic_duplicate = """SYMBOL, SERIES, DATE1, PREV_CLOSE, OPEN_PRICE, HIGH_PRICE, LOW_PRICE, LAST_PRICE, CLOSE_PRICE, AVG_PRICE, TTL_TRD_QNTY, TURNOVER_LACS, NO_OF_TRADES, DELIV_QTY, DELIV_PER
+ACME, EQ, 15-Oct-2024, 100.0, 105.0, 110.0, 102.0, 108.0, 108.0, 106.0, 50000, 53.0, 500, 20000, 40.0
+ACME, EQ, 15-Oct-2024, 100.0, 115.0, 120.0, 112.0, 118.0, 118.0, 116.0, 500000, 580.0, 5000, 200000, 40.0
+"""
+        result = verifier.reconcile_bhavcopy(
+            symbol="ACME",
+            listing_date=date(2024, 10, 15),
+            exchange="NSE",
+            final_issue_price=100.00,
+            cached_csv_override=synthetic_duplicate,
+        )
+        assert result is not None
+        # Should pick the row with 500,000 volume (open 115, close 118)
+        assert result["listing_open_price_inr"] == 115.0
+        assert result["listing_close_price_inr"] == 118.0
+        assert result["total_traded_qty"] == 500000
+
+    def test_reconcile_match_by_isin_with_udiff(self, tmp_path):
+        """Verifies reconcile_bhavcopy accurately matches by ISIN in UDiFF formats."""
+        verifier = BhavcopyOutcomeVerifier(cache_dir=str(tmp_path))
+        result = verifier.reconcile_bhavcopy(
+            symbol="HYUNDAI",
+            listing_date=date(2024, 10, 22),
+            isin="INE0V6F01027",
+            exchange="NSE",
+            final_issue_price=1960.00,
+            cached_csv_override=SYNTHETIC_UDIFF_BHAVCOPY,
+        )
+        assert result is not None
+        assert result["matched_by"] == "ISIN"
+        assert result["symbol"] == "HYUNDAI"
+        assert result["isin"] == "INE0V6F01027"
+        assert result["listing_open_price_inr"] == 1934.00
+        assert result["listing_close_price_inr"] == 1819.60
+        assert result["final_issue_price_inr"] == 1960.00
+        assert result["listing_open_gain_pct"] == round(((1934.00 - 1960.00) / 1960.00) * 100.0, 4)
+        assert result["listing_gain_pct"] == round(((1819.60 - 1960.00) / 1960.00) * 100.0, 4)
+        assert result["bhavcopy_verified"] is True
 
 
 # ---------------------------------------------------------------------------
@@ -469,12 +687,52 @@ class TestLiveHistoricalSourceConnectivity:
     def test_nse_bhavcopy_portal_reachable(self):
         """Verifies whether official NSE archive portal is reachable over HTTP."""
         verifier = BhavcopyOutcomeVerifier()
-        # Test on recent business day
         url = verifier.get_canonical_url(date(2024, 10, 15), exchange="NSE")
         try:
             with httpx.Client(headers=verifier.headers, timeout=5.0) as client:
                 res = client.head(url)
-                # Any valid HTTP response code indicates network route accessibility
                 assert res.status_code in (200, 301, 302, 403, 404)
         except httpx.HTTPError:
             pytest.skip("NSE archives portal unreachable from current network environment")
+
+    @pytest.mark.live
+    def test_bse_udiff_bhavcopy_portal_reachable(self):
+        """Verifies whether official BSE modern UDiFF endpoint is reachable over HTTP."""
+        verifier = BhavcopyOutcomeVerifier()
+        url = verifier.get_canonical_url(date(2024, 10, 15), exchange="BSE")
+        try:
+            with httpx.Client(headers=verifier.headers, timeout=5.0) as client:
+                res = client.head(url)
+                assert res.status_code in (200, 301, 302, 403, 404)
+        except httpx.HTTPError:
+            pytest.skip("BSE portal unreachable from current network environment")
+
+    @pytest.mark.live
+    def test_nse_legacy_archive_live_zip_extract(self, tmp_path):
+        """Verifies downloading and parsing a real historical legacy NSE ZIP archive."""
+        verifier = BhavcopyOutcomeVerifier(cache_dir=str(tmp_path))
+        test_date = date(2023, 10, 16)
+        try:
+            csv_text, url, content_hash = verifier.fetch_bhavcopy(test_date, exchange="NSE", force_refresh=True)
+            assert "SYMBOL" in csv_text
+            rows = verifier.parse_bhavcopy_rows(csv_text, exchange="NSE")
+            assert len(rows) > 1000
+        except (BhavcopyVerificationError, httpx.HTTPError) as e:
+            pytest.skip(f"NSE legacy archive fetch skipped: {e}")
+
+    @pytest.mark.live
+    def test_nse_public_past_issues_live_download(self):
+        """Verifies downloading and parsing real historical IPO records from NSE endpoint."""
+        from app.pipeline.nse_adapter import NseIpoSourceAdapter
+        adapter = NseIpoSourceAdapter()
+        try:
+            with httpx.Client(headers=adapter.headers, timeout=8.0, follow_redirects=True) as client:
+                client.get(f"{adapter.base_url}/market-data/all-upcoming-issues-ipo")
+                res = client.get(f"{adapter.base_url}/api/public-past-issues")
+                if res.status_code != 200:
+                    pytest.skip(f"NSE past issues API returned status {res.status_code}")
+                records = HistoricalArchiveParser.parse_nse_past_issues_json(res.text)
+                assert len(records) > 500
+        except httpx.HTTPError as e:
+            pytest.skip(f"NSE past issues live connection skipped: {e}")
+
